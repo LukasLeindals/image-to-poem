@@ -42,10 +42,12 @@ class BertSimilarityModel:
         self.model.to(device)
         
         optimizer = Adam(self.model.parameters(), lr=learning_rate) 
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.BCELoss()
         
         # for 
         if verbose:
+            counter = 0
+            running_loss = 0
             losses = []
             val_losses = []
             
@@ -62,31 +64,42 @@ class BertSimilarityModel:
                 # forward pass 
                 outputs = self.model(bert_input)
                 # calc loss 
-                print("outputs:", outputs)
-                print("label:", target)
                 loss = criterion(outputs, target)
                 if verbose:
-                    losses.append(loss.item())
+                    counter += 1 
+                    running_loss += loss.item()
                 # get gradients 
                 loss.backward()
                 # update model params 
                 optimizer.step()
+            
+            if verbose:
+                losses.append(1/counter * running_loss)
+                running_loss = 0
+                counter = 0
                 
-                if (epoch_i+1)%val_epoch == 0:
+            if (epoch_i+1)%val_epoch == 0:
+                
+                for (val_input, val_label) in val_loader:
+                    # load data input 
+                    val_caption, val_poem = val_input[0], val_input[1]
+                    # tokenize 
+                    bert_val_input = self.encode_input(val_caption, val_poem).to(device)
+                    val_target = torch.reshape(val_label,(-1,1)).float()
                     
-                    for (val_input, val_label) in val_loader:
-                        # load data input 
-                        val_caption, val_poem = val_input[0], val_input[1]
-                        # tokenize 
-                        bert_val_input = self.encode_input(val_caption, val_poem).to(device)
+                    with torch.no_grad():
+                        val_outputs = self.model.forward(bert_val_input)
+                        val_loss = criterion(val_outputs, val_target)
+                        if verbose:
+                            running_loss += val_loss.item()
+                            counter += 1 
                         
-                        with torch.no_grad():
-                            val_outputs = self.model.forward(bert_val_input)
-                            val_loss = criterion(val_outputs, val_label)
-                            
-                    if verbose:
-                        val_losses.append(val_loss)
-                        print(f"Iteration: {epoch_i+1} \t Loss: {val_loss.item()} \t") 
+                if verbose:
+                    val_losses.append(1/counter * running_loss)
+                    running_loss = 0
+                    counter += 1 
+                    
+                    print(f"Iteration: {epoch_i+1} \t Loss: {val_loss.item()} \t") 
         
         if verbose:
             plt.figure()
@@ -98,4 +111,5 @@ class BertSimilarityModel:
             plt.show()                
         
         self.trained = True 
+        return losses, val_losses
 
