@@ -1,3 +1,5 @@
+import datetime
+
 def flatten_list(l: list) -> list:
     """
     Flatten a list of lists into a list.
@@ -20,3 +22,29 @@ def flatten_list(l: list) -> list:
             out += flatten_list(sublist)
     
     return out
+
+def format_time(time_in_seconds: float) -> str:
+  return str(datetime.timedelta(seconds=int(round(time_in_seconds))))
+
+def update_param_dict(params, param_updates):
+    """
+    Update the parameter dictionary with new values.
+
+    Parameters
+    ----------
+    params : dict
+        The parameter dictionary to update.
+    param_updates : dict
+        The dictionary of parameters to update.
+
+    Returns
+    -------
+    dict
+        The updated parameter dictionary.
+    """
+    for key, value in param_updates.items():
+        if isinstance(value, dict):
+            params[key] = update_param_dict(params[key], value)
+        else:
+            params[key] = value
+    return params

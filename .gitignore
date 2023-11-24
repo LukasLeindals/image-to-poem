@@ -164,3 +164,4 @@ cython_debug/
 data/kaggle_poems/*
 data/poem_images/*
 notebooks/models/*
+models/*

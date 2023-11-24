@@ -8,14 +8,41 @@ from image_to_poem.data.utils import extract_poem_info
 from image_to_poem.utils import flatten_list
 
 class KagglePoems:
-    def __init__(self, poem_path = "data/kaggle_poems") -> None:
-        if not poem_path.endswith("/"):
-            poem_path += "/"
-        self.paths = glob.glob(poem_path+"topics/*/*.txt")
-        self.paths = [path.replace("\\", "/") for path in self.paths]
+    def __init__(self, poem_path = "data/kaggle_poems/topics/", poem_ext = "txt", max_poems = None) -> None:
+        self.poem_path = poem_path
+        self.poem_ext = poem_ext
+        self.max_poems = max_poems
+        
+        # get paths
+        self.get_poem_paths(poem_path)
+        
+        # filter out unnecesary poems
+        if max_poems is not None:
+            self.paths = self.paths[:min(max_poems, len(self.paths))]
+        
+        # read poems
         self.poems = [self.read_poem(path) for path in tqdm(self.paths, desc="Reading poems")]
+        
+        # split poems into words
         self.words = [poem.split() for poem in self.poems]
         
+    def get_poem_paths(self, poem_path):
+        # add / to path
+        if not poem_path.endswith("/"):
+            poem_path += "/"
+            
+        # allow all files to be found recursively
+        poem_path += "**"
+        
+        # add extension filter
+        if self.poem_ext is not None:
+            poem_path += "/*."+self.poem_ext
+            
+        # find paths
+        self.paths = glob.glob(poem_path, recursive = True)
+
+        self.paths = [path.replace("\\", "/") for path in self.paths]
+    
     def read_poem(self, path):
         try:
             with open(path, 'r', encoding="utf8") as f:
@@ -51,5 +78,5 @@ class KagglePoems:
 
 if __name__ == "__main__":
     poems = KagglePoems()
-    poems.get_example()
-    print(poems.stats)
+    # poems.get_example()
+    # print(poems.stats)
