@@ -10,11 +10,13 @@ import datetime
 import os
 from tqdm import tqdm
 
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config, AdamW, get_linear_schedule_with_warmup
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config, get_linear_schedule_with_warmup #,AdamW
 
 import torch
 torch.manual_seed(64)
 from torch.utils.data import Dataset, random_split, DataLoader, RandomSampler, SequentialSampler
+from torch.optim import AdamW
+
 
 from image_to_poem.utils import format_time, update_param_dict
 from image_to_poem.language_model.lm_dataset import get_datasets, create_dataloader
@@ -170,7 +172,7 @@ class Trainer:
 
 			# Sampling every x steps
 			sample_every = sample_every if self.params["sample_every"] > 1 else int(self.params["sample_every"]*len(self.train_dataloader))
-			if step != 0 and (step +1) % sample_every == 0:
+			if ((step != 0) and (sample_every) and  ((step +1) % sample_every == 0)):
 				# elapsed = format_time(time.time()-t0)
 				# print(f'Batch {step} of {len(self.train_dataloader)}. Loss: {batch_loss}. Time: {elapsed}')
 				self.sample()
@@ -244,12 +246,12 @@ class Trainer:
 				}
 			)
 			json.dump(training_stats, open(self.output_dir + "training_stats.json", "w"), indent = 4)
-
-			print("------------------------------")
    
 			# save model
 			if (self.params["save_every"] is not None) and ((epoch_i+1) % self.params["save_every"] == 0):
 				self.save()
+    
+			print("------------------------------")
     
 		print(f'Total training took {format_time(time.time()-total_t0)}')
 
@@ -262,11 +264,11 @@ if __name__ == "__main__":
 	# setup
 	max_poems = None
 	params = {
-		"sample_every": 0.05
+		"sample_every": 0.05,
      	"dataset" : {
           	"max_texts" : max_poems
         }, 
-      	"save_every" : 1
+      	"save_every" : 1,
     }
 	
 	# init model and data
@@ -274,5 +276,5 @@ if __name__ == "__main__":
 	data = KagglePoems("data/kaggle_poems/topics/", max_poems = max_poems)
 	
 	# train
-	trainer = Trainer(lm_model, data = data.poems)
+	trainer = Trainer(lm_model, data = data.poems, train_params=params)
 	trainer.train()
