@@ -14,19 +14,21 @@ def read_data(N : int, image2text, save=False):
     all_data = load_json_file(DATAPATH)
     
     data = [{}]*N
-    i = 0
-    while i < N and i < len(all_data):
+    i,j = 0,0
+    while j < N and i < len(all_data):
+        print("step :",i)
         try:
             desc = image2text(all_data[i]['image_url'])
         except:
             # skip image
-            i += 1 
+            i += 1
             continue
         desc = desc[0]['generated_text']
         
-        data[i] = all_data[i]
-        data[i]["caption"] = desc
+        data[j] = all_data[i]
+        data[j]["caption"] = desc
         i += 1 
+        j += 1 
     
     print(f"Datapoints avail : {len(all_data)}\nDatapoints used  : {N}")
     
