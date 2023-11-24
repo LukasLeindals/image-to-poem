@@ -15,7 +15,7 @@ class Bert_classifier(nn.Module):
             layers.appen(nn.ReLU())
         self.hidden_layers = nn.Sequential(*layers)
         
-        self.final_layer = nn.Linear(in_features=hidden_dim, out_features=2, bias=True)
+        self.final_layer = nn.Linear(in_features=hidden_dim, out_features=1, bias=True)
         self.sigm = nn.Sigmoid()
     
     def forward(self, bert_input):

@@ -24,14 +24,14 @@ class BertSimilarityModel:
         self.max_len = max_length 
         self.trained = False 
     
-    def tokenize(self, caption: str, poem: str):
+    def encode_input(self, caption: str, poem: str):
         return self.tokenizer.encode_plus(caption, poem, max_length=self.max_len, truncation=True, padding="max_length", return_tensors="pt")
     
     def similarity(self, caption: str, poem: str) -> float:
         if not self.trained:
             print("The BERT classifier has not been trained yet. Similarity might not be good.")
             
-        encoding = self.tokenizer(caption, poem)
+        encoding = self.encode_input(caption, poem)
         out = self.model.forward(encoding)
 
         return out
@@ -54,13 +54,17 @@ class BertSimilarityModel:
                 # load data input 
                 caption, poem = input[0], input[1]
                 # tokenize 
-                bert_input = self.tokenize(caption, poem).to(device)
+                bert_input = self.encode_input(caption, poem).to(device)
+                # fic label 
+                target = torch.reshape(label,(-1,1)).float()
                 # clear gradients 
                 optimizer.zero_grad() 
                 # forward pass 
                 outputs = self.model(bert_input)
                 # calc loss 
-                loss = criterion(outputs, label)
+                print("outputs:", outputs)
+                print("label:", target)
+                loss = criterion(outputs, target)
                 if verbose:
                     losses.append(loss.item())
                 # get gradients 
@@ -74,7 +78,7 @@ class BertSimilarityModel:
                         # load data input 
                         val_caption, val_poem = val_input[0], val_input[1]
                         # tokenize 
-                        bert_val_input = self.tokenize(val_caption, val_poem).to(device)
+                        bert_val_input = self.encode_input(val_caption, val_poem).to(device)
                         
                         with torch.no_grad():
                             val_outputs = self.model.forward(bert_val_input)
