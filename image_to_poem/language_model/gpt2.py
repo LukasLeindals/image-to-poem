@@ -51,7 +51,7 @@ class GPT2Model:
         # Running the model on GPU
         self.model = model.to(self.device)
         
-    def generate(self, prompt: str = None, max_length: int = 100, num_return_sequences: int = 1):
+    def generate(self, prompt: str = None, max_length: int = 100, num_return_sequences: int = 1, **kwargs):
         prompt = self.tokenizer.bos_token if prompt is None else prompt
         
         # set eval mode
@@ -68,7 +68,8 @@ class GPT2Model:
                                         max_length=max_length, 
                                         top_k=50, 
                                         top_p=0.95, 
-                                        num_return_sequences=num_return_sequences)
+                                        num_return_sequences=num_return_sequences,
+                                        **kwargs)
         
         # decode output
         input_len = encoded_prompt["input_ids"].size()[-1] # length of input prompt - used to exclude input from output
