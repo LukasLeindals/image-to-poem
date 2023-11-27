@@ -5,7 +5,10 @@ import glob
 import json
 import requests
 import time
+import torch
 
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DEFAULT_ROOT = "data/"
 
 def extract_kaggle(root = DEFAULT_ROOT, filter = "topics"):
@@ -97,9 +100,62 @@ def download_images(max_imgs = 100, root = os.path.join(DEFAULT_ROOT, "poem_imag
             break
                 
     print(f"Downloaded {num_downloaded} images")
+    
+
+
+def load_json_file(path):
+    with open(path) as f:
+        json_context = json.load(f)
+    return json_context
+
+def create_caption_data(N : int, image2text, save=False):
+    # set paths
+    DATAPATH = DEFAULT_ROOT + "multim_poem.json"
+    PROCESSED_DATAPATH = DEFAULT_ROOT + "caption_poem.json"
+    
+    # read data
+    all_data = load_json_file(DATAPATH)
+    
+    # create place holders    
+    data = [{}]*N
+    i,j = 0,0 # i = img indexes, j = sucesful downloas
+    
+    # add captions
+    while j < N and i < len(all_data):
+        try:
+            # get image description from model
+            desc = image2text(all_data[i]['image_url'], device = DEVICE)
+        except:
+            # Image could not be read, skip 
+            i += 1
+            continue
+        desc = desc[0]['generated_text']
+        
+        # copy data
+        data[j] = all_data[i]
+        # add description to the data
+        data[j]["caption"] = desc
+        # update 
+        i += 1 
+        j += 1 
+    
+    # print status 
+    print(f"Datapoints avail : {len(all_data)}\nDatapoints used  : {j}")
+    
+    # remove empty dicts
+    data = data[:j]
+    
+    if save:
+        # save data as a json file 
+        with open(PROCESSED_DATAPATH, 'w') as f:
+            json.dump(data, f, indent=4)
+    
+    return data
+
                 
 
 if __name__ == "__main__":
-    extract_kaggle()
-    download_images()
+    # extract_kaggle()
+    # download_images()
+    create_caption_data()
         
