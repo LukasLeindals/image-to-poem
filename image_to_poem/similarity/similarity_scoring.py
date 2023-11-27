@@ -44,12 +44,11 @@ class BertSimilarityModel:
         optimizer = Adam(self.model.parameters(), lr=learning_rate) 
         criterion = nn.BCELoss()
         
-        # for 
-        if verbose:
-            counter = 0
-            running_loss = 0
-            losses = []
-            val_losses = []
+        # save training and validation loss
+        counter = 0
+        running_loss = 0
+        losses = []
+        val_losses = []
             
         for epoch_i in range(num_epochs):
             for (input, label) in train_loader:
@@ -65,18 +64,17 @@ class BertSimilarityModel:
                 outputs = self.model(bert_input)
                 # calc loss 
                 loss = criterion(outputs, target)
-                if verbose:
-                    counter += 1 
-                    running_loss += loss.item()
+                # update
+                counter += 1 
+                running_loss += loss.item()
                 # get gradients 
                 loss.backward()
                 # update model params 
                 optimizer.step()
             
-            if verbose:
-                losses.append(1/counter * running_loss)
-                running_loss = 0
-                counter = 0
+            losses.append(1/counter * running_loss)
+            running_loss = 0
+            counter = 0
                 
             if (epoch_i+1)%val_epoch == 0:
                 
@@ -90,16 +88,14 @@ class BertSimilarityModel:
                     with torch.no_grad():
                         val_outputs = self.model.forward(bert_val_input)
                         val_loss = criterion(val_outputs, val_target)
-                        if verbose:
-                            running_loss += val_loss.item()
-                            counter += 1 
+                        running_loss += val_loss.item()
+                        counter += 1 
                         
+                val_losses.append(1/counter * running_loss)
                 if verbose:
-                    val_losses.append(1/counter * running_loss)
-                    running_loss = 0
-                    counter += 1 
-                    
-                    print(f"Iteration: {epoch_i+1} \t Loss: {val_loss.item()} \t") 
+                    print(f"Iteration: {epoch_i+1} \t Loss: {val_losses[-1]} \t") 
+                running_loss = 0
+                counter += 1 
         
         if verbose:
             plt.figure()
