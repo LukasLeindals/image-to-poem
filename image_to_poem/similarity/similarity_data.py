@@ -16,32 +16,37 @@ def read_data(N : int, image2text, save=False):
     data = [{}]*N
     i,j = 0,0
     while j < N and i < len(all_data):
-        print("step :",i)
         try:
+            # get image description from model
             desc = image2text(all_data[i]['image_url'])
         except:
-            # skip image
+            # Image could not be read, skip 
             i += 1
             continue
         desc = desc[0]['generated_text']
         
+        # copy data
         data[j] = all_data[i]
+        # add description to the data
         data[j]["caption"] = desc
+        # update 
         i += 1 
         j += 1 
     
+    # print status 
     print(f"Datapoints avail : {len(all_data)}\nDatapoints used  : {N}")
     
     if save:
+        # save data as a json file 
         with open(PROCESSED_DATAPATH, 'w') as f:
-            json.dump(data, f)
+            json.dump(data, f, indent=4)
     
     return data
-    
+
+# TODO: Issue! Update the Dataset to work with batch size > 1 
 class CaptionPoemDataset(Dataset):
-    def __init__(self, datadict : dict, batch_size : int):
+    def __init__(self, datadict : dict):
         self.data = datadict
-        self.batch_size = batch_size
         
         self.N_halfs = len(self.data) // 2 
         self.shuffle_idx = np.random.choice(a=self.N_halfs, size=self.N_halfs, replace=False)
@@ -62,7 +67,7 @@ class CaptionPoemDataset(Dataset):
 
 def get_dataloaders(datadict, batch_size, split):
     # define dataset class 
-    dataset = CaptionPoemDataset(datadict, batch_size)
+    dataset = CaptionPoemDataset(datadict)
     
     # split data 
     train_size = int(split*len(dataset))
