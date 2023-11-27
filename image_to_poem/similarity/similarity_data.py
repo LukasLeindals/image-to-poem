@@ -1,12 +1,5 @@
-import json
 import numpy as np
 from torch.utils.data import Dataset, DataLoader, random_split, RandomSampler, SequentialSampler
-import torch
-
-DATAPATH = "../../data/multim_poem.json"
-PROCESSED_DATAPATH = "../../data/caption_poem.json"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
 
 # TODO: Issue! Update the Dataset to work with batch size > 1 
 class CaptionPoemDataset(Dataset):
