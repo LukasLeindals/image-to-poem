@@ -16,7 +16,7 @@ class PoemGenerator:
 
         
         
-    def image_to_poem(self, image_paths):
+    def image_to_poem(self, image_paths, **kwargs):
         # make sure image_paths is a list
         if isinstance(image_paths, str):
             image_paths = [image_paths]
@@ -32,20 +32,20 @@ class PoemGenerator:
             poems[i] = {}
             poems[i]["image_path"] = image_paths[i]
             poems[i]["image_desc"] = desc[0]["generated_text"]
-            poems[i]["generated_poem"] = self.generate_poem(poems[i]["image_desc"])
+            poems[i]["generated_poem"] = self.generate_poem(poems[i]["image_desc"], **kwargs)
             
         return poems
     
-    def generate_poem(self, description: str):
+    def generate_poem(self, description: str, **kwargs):
         # print(description)
         
-        poems = self.get_candidates(description)
+        poems = self.get_candidates(description, **kwargs)
         poem = self.select_poem(poems, description)
         
         return poem 
     
-    def get_candidates(self, description: str):
-        return self.lm_model.generate(prompt = description, num_return_sequences=self.N)
+    def get_candidates(self, description: str, **kwargs):
+        return self.lm_model.generate(prompt = description, num_return_sequences=self.N, **kwargs)
     
     def select_poem(self, candidates: list, description: str):
         # initialize BERT model
@@ -65,8 +65,8 @@ class PoemGenerator:
         
 if __name__ == "__main__":
     # initialize poem generator
-    # poem_generator = PoemGenerator(lm_model = "models/language_models/model_20231123_215337/model/")
-    poem_generator = PoemGenerator(lm_model = "models/language_models/model_20231123_190606/model/")
+    poem_generator = PoemGenerator(lm_model = "models/language_models/model_20231123_225612/model/")
+    # poem_generator = PoemGenerator(lm_model = "models/language_models/model_20231123_190606/model/")
     
     # generate poems from images
     poems = poem_generator.image_to_poem(["data/poem_images/1.jpg", "data/poem_images/3.jpg"])
