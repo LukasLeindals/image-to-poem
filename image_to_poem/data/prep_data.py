@@ -6,6 +6,8 @@ import json
 import requests
 import time
 import torch
+from transformers import pipeline
+import datetime
 
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -108,25 +110,51 @@ def load_json_file(path):
         json_context = json.load(f)
     return json_context
 
-def create_caption_data(N : int, image2text, save=False):
+def save_json_file(path, data):
+    if os.path.exists(path):
+        print(f"File {path} already exists")
+        path, ext = os.path.splitext(path)
+        new_path = path + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ext
+        print(f"Saving file as {new_path} instead")
+        save_json_file(new_path, data)
+        
+    else:
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=4)
+        
+    
+
+def create_caption_data(N : int = None, image2text = None, save=False, verbose = False, backup_every = 100):
     # set paths
     DATAPATH = DEFAULT_ROOT + "multim_poem.json"
     PROCESSED_DATAPATH = DEFAULT_ROOT + "caption_poem.json"
+    BACKUP_DATAPATH = DEFAULT_ROOT + "backups/" + "caption_poem.json"
+    os.makedirs(DEFAULT_ROOT + "backups/", exist_ok=True)
     
     # read data
     all_data = load_json_file(DATAPATH)
     
-    # create place holders    
+    # create image_to_text function
+    if image2text is None:
+        image2text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning", device=DEVICE)
+    
+    # create variables
+    N = N if N is not None else len(all_data)    
     data = [{}]*N
     i,j = 0,0 # i = img indexes, j = sucesful downloas
     
     # add captions
     while j < N and i < len(all_data):
+        t0 = time.time()
         try:
             # get image description from model
-            desc = image2text(all_data[i]['image_url'], device = DEVICE)
+            desc = image2text(all_data[i]['image_url'])
+            if verbose:
+                print(f"Outcome of creating caption for image {all_data[i]['id']}: succeeded in {time.time()-t0:.3f} s")
         except:
             # Image could not be read, skip 
+            if verbose:
+                print(f"Outcome of creating caption for image {all_data[i]['id']}: failed in {time.time()-t0:.3f} s")
             i += 1
             continue
         desc = desc[0]['generated_text']
@@ -135,6 +163,11 @@ def create_caption_data(N : int, image2text, save=False):
         data[j] = all_data[i]
         # add description to the data
         data[j]["caption"] = desc
+        
+        # save current progreess to backup file
+        if save and i % backup_every == 0:
+            save_json_file(BACKUP_DATAPATH, data[:j])
+        
         # update 
         i += 1 
         j += 1 
@@ -147,8 +180,7 @@ def create_caption_data(N : int, image2text, save=False):
     
     if save:
         # save data as a json file 
-        with open(PROCESSED_DATAPATH, 'w') as f:
-            json.dump(data, f, indent=4)
+        save_json_file(PROCESSED_DATAPATH, data)
     
     return data
 
@@ -157,5 +189,12 @@ def create_caption_data(N : int, image2text, save=False):
 if __name__ == "__main__":
     # extract_kaggle()
     # download_images()
-    create_caption_data()
+    
+    # create caption data
+    image2text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning", device=DEVICE)
+    t0 = time.time()
+    N = None
+    create_caption_data(N, image2text=image2text, save = True, verbose = True, backup_every=100)
+    print(f"Captions created in {time.time()-t0:.3f} s")
+    
         
