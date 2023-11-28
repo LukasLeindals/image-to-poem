@@ -1,11 +1,13 @@
 import numpy as np
+import torch
 from torch.utils.data import Dataset, DataLoader, random_split, RandomSampler, SequentialSampler
 
 # TODO: Issue! Update the Dataset to work with batch size > 1 
 class CaptionPoemDataset(Dataset):
-    def __init__(self, datadict : dict):
+    def __init__(self, datadict : dict, encoder_fun):
         self.data = datadict
-        
+        self.encoder = encoder_fun 
+                
         self.N_halfs = len(self.data) // 2 
         self.shuffle_idx = np.random.choice(a=self.N_halfs, size=self.N_halfs, replace=False)
     
@@ -18,14 +20,22 @@ class CaptionPoemDataset(Dataset):
             match_idx = self.shuffle_idx[idx]
         else:
             match_idx = idx
-        
-        cap_poem = [self.data[idx]['caption'], self.data[match_idx]['poem']]
-        label = 1 if idx == match_idx else 0 
-        return cap_poem, label
+        # collect caption and poem 
+        cap = self.data[idx]['caption']
+        poem = self.data[match_idx]['poem']
+        # tokenize 
+        X = self.encoder(cap, poem)
+        # reshape input to correct size 
+        X["input_ids"] = torch.flatten(X["input_ids"])
+        X["token_type_ids"] = torch.flatten(X["token_type_ids"])
+        X["attention_mask"] = torch.flatten(X["attention_mask"])
+        # get label 
+        y = 1 if idx == match_idx else 0 
+        return X, y
 
-def get_dataloaders(datadict, batch_size, split):
+def get_dataloaders(datadict, encoder_fun, batch_size, split):
     # define dataset class 
-    dataset = CaptionPoemDataset(datadict)
+    dataset = CaptionPoemDataset(datadict, encoder_fun)
     
     # split data 
     train_size = int(split*len(dataset))

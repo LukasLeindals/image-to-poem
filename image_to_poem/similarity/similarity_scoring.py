@@ -5,17 +5,20 @@ from torch.optim import Adam
 from transformers import BertTokenizer, BertModel
 from bert_classifier import Bert_classifier
 import numpy as np
+
+from image_to_poem.data.prep_data import load_json_file
+from image_to_poem.similarity.similarity_data import get_dataloaders
+
 import matplotlib.pyplot as plt 
 import seaborn as sns 
 sns.set()
 
-
 class BertSimilarityModel:
-    def __init__(self, no_hidden_layers: int=2, hidden_dim: int = 100, max_length: int = 150):
+    def __init__(self, no_hidden_layers: int=1, hidden_dim: int = 100, max_length: int = 250):
         
         # models 
-        bert = BertModel.from_pretrained("bert-base-uncased")
-        self.model = Bert_classifier(bert, no_hidden_layers, hidden_dim)
+        self.bert = BertModel.from_pretrained("bert-base-uncased")
+        self.model = Bert_classifier(self.bert.config.hidden_size, no_hidden_layers, hidden_dim)
         
         # tokenizer 
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
@@ -29,15 +32,20 @@ class BertSimilarityModel:
     
     def similarity(self, caption: str, poem: str) -> float:
         if not self.trained:
-            print("The BERT classifier has not been trained yet. Similarity might not be good.")
-            
+            print("The BERT Classifier has not been trained yet. Similarity might not be good.")
+        
+        # encode/tokenize caption and poem      
         encoding = self.encode_input(caption, poem)
-        out = self.model.forward(encoding)
+        # send through BERT  
+        bert_output = self.bert(**encoding)
+        _, x = bert_output[0], bert_output[1]
+        # send bert output through classifier 
+        res = self.model(x)
 
-        return out
+        return res.item()
     
-    def train_bert_classifier(self, train_loader: DataLoader, val_loader: DataLoader, 
-                              num_epochs, val_epoch: int, learning_rate: float, verbose: bool=True):
+    def train_bert_classifier(self, train_loader: DataLoader, val_loader: DataLoader, num_epochs: int, 
+                              val_epoch: int, learning_rate: float, save_path: str=None, verbose: bool=True):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(device)
         
@@ -51,17 +59,16 @@ class BertSimilarityModel:
         val_losses = []
             
         for epoch_i in range(num_epochs):
-            for (input, label) in train_loader:
-                # load data input 
-                caption, poem = input[0], input[1]
-                # tokenize 
-                bert_input = self.encode_input(caption, poem).to(device)
-                # fic label 
-                target = torch.reshape(label,(-1,1)).float()
+            for (inp, lbl) in train_loader:
+                # send input through BERT 
+                bert_output = self.bert(**inp)
+                _, cls_res = bert_output[0], bert_output[1]
+                # fix label 
+                target = torch.reshape(lbl,(-1,1)).float()
                 # clear gradients 
                 optimizer.zero_grad() 
                 # forward pass 
-                outputs = self.model(bert_input)
+                outputs = self.model(cls_res)
                 # calc loss 
                 loss = criterion(outputs, target)
                 # update
@@ -78,15 +85,14 @@ class BertSimilarityModel:
                 
             if (epoch_i+1)%val_epoch == 0:
                 
-                for (val_input, val_label) in val_loader:
-                    # load data input 
-                    val_caption, val_poem = val_input[0], val_input[1]
-                    # tokenize 
-                    bert_val_input = self.encode_input(val_caption, val_poem).to(device)
-                    val_target = torch.reshape(val_label,(-1,1)).float()
+                for (val_inp, val_lbl) in val_loader:
+                    # prepare input and label
+                    val_bert_output = self.bert(**val_inp)
+                    _, val_cls_res = val_bert_output[0], val_bert_output[1]
+                    val_target = torch.reshape(val_lbl,(-1,1)).float()
                     
                     with torch.no_grad():
-                        val_outputs = self.model.forward(bert_val_input)
+                        val_outputs = self.model(val_cls_res)
                         val_loss = criterion(val_outputs, val_target)
                         running_loss += val_loss.item()
                         counter += 1 
@@ -104,8 +110,18 @@ class BertSimilarityModel:
             plt.xlabel("Epoch number")
             plt.ylabel("Loss")
             plt.legend()
-            plt.show()                
+            plt.show()
         
+        # save model 
+        if save_path is not None:
+            self.model.save_model(save_path)
+            
         self.trained = True 
         return losses, val_losses
 
+# def do_training(batch_size, ):
+    # data = load_json_file("../../data/caption_poem.json")
+    # train_loader, val_loader = get_dataloaders(data, )
+
+if __name__ == "__main__":
+    pass
