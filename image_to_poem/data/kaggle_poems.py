@@ -55,12 +55,12 @@ class KagglePoems:
         example_index = example_index or random.randint(0, len(self.paths))
         example = self.paths[example_index]
         
-        topic, title, author = extract_poem_info(example)
+        cat, title, author = extract_poem_info(example)
         print(f"File index: {example_index}")
-        print(f"Topic: {topic}")
+        print(f"Category: {cat}")
         print(f"Title: {title}")
         print(f"Author: {author}")
-        print("-"*(8+max([len(topic), len(title), len(author)])))
+        print("-"*(8+max([len(cat), len(title), len(author)])))
         print(self.poems[example_index])
     
     @property    

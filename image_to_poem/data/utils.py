@@ -8,13 +8,13 @@ def extract_poem_info(path):
         path (str): The path to the poem file
     
     Returns:
-        (str, str, str): The topic, title, and author of the poem
+        (str, str, str): The category, title, and author of the poem
     """
     # ensure path is in unix format
     path = path.replace("\\", "/")
     
-    # get topic
-    topic = path.split('/')[-2]
+    # get category (topic/forms)
+    cat = path.split('/')[-2]
     
     # get title and author
     split_on_capitals = lambda x: re.sub(r"(\w)([A-Z])", r"\1 \2", x)
@@ -22,10 +22,10 @@ def extract_poem_info(path):
     title, author = name.split('Poemby')
     title, author = split_on_capitals(title), split_on_capitals(author)
     
-    # remove first two words from title as these describe the topic
+    # remove first two words from title as these describe the category
     title = ' '.join(title.split(' ')[2:])
     
-    return topic, title, author
+    return cat, title, author
 
 
 

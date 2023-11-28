@@ -44,8 +44,7 @@ class Trainer:
 		"sample" : {
 			"do_sample": True,   
 			"top_k": 50, 
-			"max_length": 200,
-			"top_p": 0.95, 
+			"max_length": 500,
 			"num_return_sequences":1,
 		},
 		"dataset" : {
