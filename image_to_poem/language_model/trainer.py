@@ -21,6 +21,8 @@ from torch.optim import AdamW
 from image_to_poem.utils import format_time, update_param_dict
 from image_to_poem.language_model.lm_dataset import get_datasets, create_dataloader
 from image_to_poem.data.kaggle_poems import KagglePoems
+from image_to_poem.utils import load_json_file, save_json_file
+
 
 def set_seed(seed_val = 42):
 	random.seed(seed_val)
@@ -75,6 +77,7 @@ class Trainer:
 	def create_output_dir(self, lm):
 		self.output_dir = "models/language_models/" + lm.name + "/"
 		os.makedirs(self.output_dir, exist_ok = True)
+
   
 	def save(self):
 		model_dir = self.output_dir + "model/"
@@ -99,7 +102,7 @@ class Trainer:
 		# decode and save sample
 		for i, sample_output in enumerate(sample_outputs):
 			sample_ = self.tokenizer.decode(sample_output, skip_special_tokens=True)
-			with open(sample_dir + f"epoch_{self.current_epoch}_batch_{self.current_batch_no}_{i}.txt", "w") as file:
+			with open(sample_dir + f"epoch_{self.current_epoch}_batch_{self.current_batch_no}_{i}.txt", "w", encoding="utf8") as file:
 				file.write(sample_)
 
 		# go back to train mode
@@ -115,7 +118,6 @@ class Trainer:
 		self.model.eval()
   
 		total_eval_loss = 0
-		nb_eval_steps = 0
 
 		for batch in self.val_dataloader:
 			b_input_ids = batch[0].to(self.device)
@@ -257,23 +259,56 @@ class Trainer:
 		# save model
 		self.save()
 
+def save_class_settings(input_class, path, keys_to_exclude = []):
+	settings = input_class.__dict__.copy()
+	
+	# remove keys to exclude
+	for key in keys_to_exclude:
+		del settings[key]
+  
+	# convert values to strings
+	for key in settings:
+		if not str(settings[key]).isnumeric():
+			settings[key] = str(settings[key])
+  
+	save_json_file(path, settings)
+
+
+
 if __name__ == "__main__":
 	from image_to_poem.language_model.gpt2 import GPT2Model
 	
 	# setup
-	max_poems = None
+	max_poems = 200
 	params = {
+		"batch_size" : 1,
 		"sample_every": 0.05,
      	"dataset" : {
-          	"max_texts" : max_poems
+          	"max_texts" : max_poems,
+           	"max_length" : 300,
         }, 
       	"save_every" : 1,
     }
 	
 	# init model and data
 	lm_model = GPT2Model()
-	data = KagglePoems("data/kaggle_poems/topics/", max_poems = max_poems)
+	data = KagglePoems("data/kaggle_poems/", max_poems = max_poems)
 	
-	# train
+	# create trainer
 	trainer = Trainer(lm_model, data = data.poems, train_params=params)
+ 
+	# save data settings
+	save_class_settings(data, trainer.output_dir + "data_settings.json", keys_to_exclude=["words", "poems"])
+	# data_settings = data.__dict__.copy()
+	# del data_settings["words"]
+	# del data_settings["poems"]
+	# save_json_file(trainer.output_dir + "data_settings.json", data_settings)
+
+	# # save model settings
+	save_class_settings(lm_model, trainer.output_dir + "model_settings.json")
+	# model_settings = lm_model.__dict__.copy()
+	# model_settings["device"] = str(model_settings["device"])
+	# save_json_file(trainer.output_dir + "model_settings.json", model_settings)
+
+	# train 
 	trainer.train()
