@@ -1,4 +1,7 @@
 import datetime
+import json
+import os
+
 
 def flatten_list(l: list) -> list:
     """
@@ -48,3 +51,20 @@ def update_param_dict(params, param_updates):
         else:
             params[key] = value
     return params
+
+def load_json_file(path):
+    with open(path) as f:
+        json_context = json.load(f)
+    return json_context
+
+def save_json_file(path, data):
+    if os.path.exists(path):
+        print(f"File {path} already exists")
+        path, ext = os.path.splitext(path)
+        new_path = path + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ext
+        print(f"Saving file as {new_path} instead")
+        save_json_file(new_path, data)
+        
+    else:
+        with open(path, 'w') as f:
+            json.dump(data, f, indent=4)

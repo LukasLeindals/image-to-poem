@@ -6,7 +6,7 @@ from transformers import BertTokenizer, BertModel
 from bert_classifier import Bert_classifier
 import numpy as np
 
-from image_to_poem.data.prep_data import load_json_file
+from image_to_poem.utils import load_json_file
 from image_to_poem.similarity.similarity_data import get_dataloaders
 
 import matplotlib.pyplot as plt 
