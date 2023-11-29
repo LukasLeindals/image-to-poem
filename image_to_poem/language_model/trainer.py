@@ -35,7 +35,7 @@ class Trainer:
 		"epochs" : 4,
 		"sample_every" : 0.5,
 		"save_every" : None,
-		"batch_size" : 8,
+		"batch_size" : 8, # test this
 		"optimizer" : {
 			"lr" : 5e-4,
 			"eps" : 1e-8,
@@ -51,7 +51,7 @@ class Trainer:
 		},
 		"dataset" : {
 			"train_frac": 0.9, 
-   			"max_length": 100, 
+   			"max_length": 100, #test this - from data dist 
       		"max_texts": None,
 		},
 	}
