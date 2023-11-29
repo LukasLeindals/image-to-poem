@@ -293,13 +293,13 @@ if __name__ == "__main__":
 		"sample_every": 0.1,
      	"dataset" : {
           	"max_texts" : max_poems,
-           	"max_length" : 300,
+           	"max_length" : 600,
         }, 
       	"save_every" : 1,
     }
 	
 	# init model and data
-	lm_model = GPT2Model(pretrained_model="gpt2-medium", name = "gpt2-medium-max_len-300")
+	lm_model = GPT2Model(pretrained_model="gpt2", name = "max_len-600")
 	data = KagglePoems("data/kaggle_poems/", max_poems = max_poems)
 	
 	# create trainer
