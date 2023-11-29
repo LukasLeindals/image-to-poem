@@ -5,6 +5,7 @@ from torch.optim import Adam
 from transformers import BertTokenizer, BertModel
 from bert_classifier import Bert_classifier
 import numpy as np
+import os
 
 from image_to_poem.utils import load_json_file
 from image_to_poem.similarity.similarity_data import get_dataloaders
@@ -12,6 +13,16 @@ from image_to_poem.similarity.similarity_data import get_dataloaders
 import matplotlib.pyplot as plt 
 import seaborn as sns 
 sns.set()
+
+# VARIABLES 
+MAX_LENGTH = 200
+NO_HIDDEN = 1
+HIDDEN_DIM = 100
+
+BATCH_SIZE = 5 
+NUM_EPOCHS = 1
+VAL_EPOCH = 5
+LEARNING_RATE = 0.001
 
 class BertSimilarityModel:
     def __init__(self, no_hidden_layers: int=1, hidden_dim: int = 100, max_length: int = 250):
@@ -53,8 +64,6 @@ class BertSimilarityModel:
         criterion = nn.BCELoss()
         
         # save training and validation loss
-        counter = 0
-        running_loss = 0
         losses = []
         val_losses = []
             
@@ -72,17 +81,13 @@ class BertSimilarityModel:
                 # calc loss 
                 loss = criterion(outputs, target)
                 # update
-                counter += 1 
-                running_loss += loss.item()
+                losses.append(loss)
                 # get gradients 
                 loss.backward()
                 # update model params 
                 optimizer.step()
             
-            losses.append(1/counter * running_loss)
-            running_loss = 0
-            counter = 0
-                
+            # validation epoch     
             if (epoch_i+1)%val_epoch == 0:
                 
                 for (val_inp, val_lbl) in val_loader:
@@ -94,34 +99,39 @@ class BertSimilarityModel:
                     with torch.no_grad():
                         val_outputs = self.model(val_cls_res)
                         val_loss = criterion(val_outputs, val_target)
-                        running_loss += val_loss.item()
-                        counter += 1 
+                        val_losses.append(val_loss)
                         
-                val_losses.append(1/counter * running_loss)
                 if verbose:
                     print(f"Iteration: {epoch_i+1} \t Loss: {val_losses[-1]} \t") 
-                running_loss = 0
-                counter += 1 
-        
-        if verbose:
-            plt.figure()
-            plt.plot(np.arange(num_epochs), losses, "-", label="Train loss")
-            plt.plot([i*val_epoch for i in range(num_epochs//val_epoch)], val_losses, ".-", label="Val loss")
-            plt.xlabel("Epoch number")
-            plt.ylabel("Loss")
-            plt.legend()
-            plt.show()
         
         # save model 
         if save_path is not None:
             self.model.save_model(save_path)
+        
+        if verbose:
+            plt.figure()
+            plt.plot(losses, "-", label="Training Loss")
+            plt.plot([(i+1)*val_epoch for i in range(val_losses)], val_losses, ".-", label="Validation Loss")
+            plt.xlabel("Batch Step")
+            plt.ylabel("Loss")
+            plt.legend()
+            plt.show()
             
         self.trained = True 
         return losses, val_losses
 
-# def do_training(batch_size, ):
-    # data = load_json_file("../../data/caption_poem.json")
-    # train_loader, val_loader = get_dataloaders(data, )
+def do_training(modelfolder):
+    sim_model = BertSimilarityModel(no_hidden_layers=NO_HIDDEN, hidden_dim=HIDDEN_DIM, max_length=MAX_LENGTH)
+    
+    data = load_json_file("../../data/caption_poem.json")
+    train_loader, val_loader = get_dataloaders(data[:-100], sim_model.encode_input, BATCH_SIZE, split=0.9)
+    
+    # train 
+    modelfile = os.path.join(modelfolder, f"sim_model_{NO_HIDDEN}_{HIDDEN_DIM}.pt")
+    loss, val_loss = sim_model.train_bert_classifier(train_loader, val_loader, NUM_EPOCHS, VAL_EPOCH, LEARNING_RATE, modelfile, verbose=True)
+    
+    np.savetxt(os.path.join(modelfolder,"loss.txt"),loss)
+    np.savetxt(os.path.join(modelfolder,"val_loss.txt"),val_loss)
 
 if __name__ == "__main__":
-    pass
+    do_training(f"models/similarity")
