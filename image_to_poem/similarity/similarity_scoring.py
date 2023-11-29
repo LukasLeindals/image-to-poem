@@ -123,11 +123,12 @@ class BertSimilarityModel:
 def do_training(modelfolder):
     sim_model = BertSimilarityModel(no_hidden_layers=NO_HIDDEN, hidden_dim=HIDDEN_DIM, max_length=MAX_LENGTH)
     
-    data = load_json_file("../../data/caption_poem.json")
+    data = load_json_file("data/caption_poem.json")
     train_loader, val_loader = get_dataloaders(data[:-100], sim_model.encode_input, BATCH_SIZE, split=0.9)
     
     # train 
     modelfile = os.path.join(modelfolder, f"sim_model_{NO_HIDDEN}_{HIDDEN_DIM}.pt")
+    print("~ starting training ~")
     loss, val_loss = sim_model.train_bert_classifier(train_loader, val_loader, NUM_EPOCHS, VAL_EPOCH, LEARNING_RATE, modelfile, verbose=True)
     
     np.savetxt(os.path.join(modelfolder,"loss.txt"),loss)
