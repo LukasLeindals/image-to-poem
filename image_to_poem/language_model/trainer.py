@@ -76,6 +76,10 @@ class Trainer:
   
 	def create_output_dir(self, lm):
 		self.output_dir = "models/language_models/" + lm.name + "/"
+		if os.path.exists(self.output_dir):
+			print(f"WARNING: Output directory '{self.output_dir}' already exists. Appending the date to the file name...")
+			self.output_dir = self.output_dir.strip("/")
+			self.output_dir += "_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/"
 		os.makedirs(self.output_dir, exist_ok = True)
 
   
@@ -177,6 +181,10 @@ class Trainer:
 				# elapsed = format_time(time.time()-t0)
 				# print(f'Batch {step} of {len(self.train_dataloader)}. Loss: {batch_loss}. Time: {elapsed}')
 				self.sample()
+    
+				# TODO: plot loss
+				# validate and save current avg batch loss
+				# avg_val_loss, val_time = self.validate()
 				
 
 			loss.backward()
@@ -279,10 +287,10 @@ if __name__ == "__main__":
 	from image_to_poem.language_model.gpt2 import GPT2Model
 	
 	# setup
-	max_poems = 200
+	max_poems = None
 	params = {
-		"batch_size" : 1,
-		"sample_every": 0.05,
+		"batch_size" : 4,
+		"sample_every": 0.1,
      	"dataset" : {
           	"max_texts" : max_poems,
            	"max_length" : 300,
@@ -291,7 +299,7 @@ if __name__ == "__main__":
     }
 	
 	# init model and data
-	lm_model = GPT2Model()
+	lm_model = GPT2Model(pretrained_model="gpt2-medium", name = "gpt2-medium-max_len-300")
 	data = KagglePoems("data/kaggle_poems/", max_poems = max_poems)
 	
 	# create trainer
@@ -299,16 +307,9 @@ if __name__ == "__main__":
  
 	# save data settings
 	save_class_settings(data, trainer.output_dir + "data_settings.json", keys_to_exclude=["words", "poems"])
-	# data_settings = data.__dict__.copy()
-	# del data_settings["words"]
-	# del data_settings["poems"]
-	# save_json_file(trainer.output_dir + "data_settings.json", data_settings)
 
-	# # save model settings
+	# save model settings
 	save_class_settings(lm_model, trainer.output_dir + "model_settings.json")
-	# model_settings = lm_model.__dict__.copy()
-	# model_settings["device"] = str(model_settings["device"])
-	# save_json_file(trainer.output_dir + "model_settings.json", model_settings)
 
 	# train 
 	trainer.train()
