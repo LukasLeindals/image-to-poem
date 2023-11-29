@@ -165,3 +165,4 @@ data/kaggle_poems/*
 data/poem_images/*
 notebooks/models/*
 models/*
+logs/hpc/*
