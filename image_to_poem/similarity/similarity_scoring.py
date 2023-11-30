@@ -255,15 +255,3 @@ if __name__ == "__main__":
     model_name = f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
     do_training(model_name, data_size = 200)
     
-    
-    # test the model
-    # sim_model = BertSimilarityModel.from_model_dir("models/similarity/model_20231129_221129")
-    
-    # from image_to_poem.language_model.gpt2 import GPT2Model
-
-    # model_dir = "models/language_models/max_len-500/model/"
-    # model = GPT2Model(model_dir)
-    # prompt = "some lovely flowers in a field"
-    # poem = model.generate(prompt = prompt, num_return_sequences=1, max_length=50)[0]
-    
-    # print(sim_model.similarity(prompt, poem))
