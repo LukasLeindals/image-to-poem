@@ -5,10 +5,6 @@ import os
 class Bert_classifier(nn.Module):
     def __init__(self, input_dim, no_hidden_layers: int=2, hidden_dim: int = 100):
         super(Bert_classifier, self).__init__()
-        # self.bert = bert
-        # do not train bert parameters!
-        # for param in self.bert.parameters():
-        #     param.requires_grad = False
         
         # set device
         self.to_device()
