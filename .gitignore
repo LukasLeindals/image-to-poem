@@ -166,3 +166,6 @@ data/poem_images/*
 notebooks/models/*
 models/*
 logs/hpc/*
+
+# teo's stuff 
+notebooks/messynotebook.ipynb

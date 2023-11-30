@@ -91,6 +91,8 @@ class BertSimilarityModel:
                 "num_epochs": num_epochs, 
                 "val_epoch": val_epoch, 
                 "learning_rate": learning_rate,
+                "no_train_batch": len(train_loader),
+                "no_val_batch" : len(val_loader),
             })
         
         # save training and validation loss
@@ -181,13 +183,17 @@ class BertSimilarityModel:
         
         # plot loss
         if verbose:
+            N = 25 
+            smooth_losses = np.convolve(losses, np.ones(N)/N, mode='same')
+            
             plt.figure()
-            plt.plot(np.arange(1, num_epochs*len(train_loader) + 1)/len(train_loader), losses, "-", label="Training Loss (per batch step)")
-            plt.plot(np.arange(1, num_epochs + 1), epoch_losses, ".-", label="Training Loss")
+            plt.plot(np.linspace(0,5,len(losses)), losses, "-", alpha=0.25, linewidth=0.5)
+            plt.plot(np.linspace(0,5,len(losses)), smooth_losses, "-b", linewidth=0.5, label="Smoothed Training Loss (per batch step)")
+            plt.plot(np.arange(5)+1, epoch_losses, ".-", linewidth=1.5, label="Training Loss")
             if len(val_losses) > 0:
-                plt.plot(np.arange(1, len(val_losses)+1), val_losses, ".-", label="Validation Loss")
+                plt.plot(np.arange(5)+1,val_losses, ".-", linewidth=1.5, label="Validation Loss")
             plt.xlabel("Epoch")
-            plt.ylabel("Avg. Loss (per batch)")
+            plt.ylabel("Loss")
             plt.legend()
 
             plt.savefig(os.path.join(save_folder, "loss.png"))
@@ -249,15 +255,3 @@ if __name__ == "__main__":
     model_name = f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
     do_training(model_name, data_size = 200)
     
-    
-    # test the model
-    # sim_model = BertSimilarityModel.from_model_dir("models/similarity/model_20231129_221129")
-    
-    # from image_to_poem.language_model.gpt2 import GPT2Model
-
-    # model_dir = "models/language_models/max_len-500/model/"
-    # model = GPT2Model(model_dir)
-    # prompt = "some lovely flowers in a field"
-    # poem = model.generate(prompt = prompt, num_return_sequences=1, max_length=50)[0]
-    
-    # print(sim_model.similarity(prompt, poem))
