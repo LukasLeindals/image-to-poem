@@ -3,7 +3,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from transformers import BertTokenizer, BertModel
-from bert_classifier import Bert_classifier
+from image_to_poem.similarity.bert_classifier import Bert_classifier
 import numpy as np
 import os
 import tqdm
@@ -22,7 +22,7 @@ NO_HIDDEN = 1
 HIDDEN_DIM = 100
 
 BATCH_SIZE = 5 
-NUM_EPOCHS = 5
+NUM_EPOCHS = 1
 VAL_EPOCH = 1
 LEARNING_RATE = 0.001
 SAVE_EVERY = 1 # save model every x epochs
@@ -62,9 +62,14 @@ class BertSimilarityModel:
         
         # encode/tokenize caption and poem      
         encoding = self.encode_input(caption, poem)
+        
+        # send to device
+        encoding = {key: encoding[key].to(self.device) for key in encoding}
+        
         # send through BERT  
         bert_output = self.bert(**encoding)
         _, x = bert_output[0], bert_output[1]
+        
         # send bert output through classifier 
         res = self.model(x)
 
@@ -177,18 +182,46 @@ class BertSimilarityModel:
         # plot loss
         if verbose:
             plt.figure()
-            plt.plot(np.arange(1, len(train_loader)*num_epochs + 1), losses, "-", label="Training Loss (per batch step)")
-            plt.plot(np.arange(1, len(epoch_losses)+1)*len(train_loader), epoch_losses, ".-", label="Training Loss (mean per epoch)")
+            plt.plot(np.arange(1, num_epochs*len(train_loader) + 1)/len(train_loader), losses, "-", label="Training Loss (per batch step)")
+            plt.plot(np.arange(1, num_epochs + 1), epoch_losses, ".-", label="Training Loss")
             if len(val_losses) > 0:
-                plt.plot(np.arange(1, len(val_losses)+1)*len(train_loader), val_losses, ".-", label="Validation Loss")
-            plt.xlabel("Batch Step")
-            plt.ylabel("Loss")
+                plt.plot(np.arange(1, len(val_losses)+1), val_losses, ".-", label="Validation Loss")
+            plt.xlabel("Epoch")
+            plt.ylabel("Avg. Loss (per batch)")
             plt.legend()
 
             plt.savefig(os.path.join(save_folder, "loss.png"))
             
         self.trained = True 
-        return losses, val_losses
+        return {
+            "loss": losses,
+            "val_loss": val_losses,
+            "epoch_loss": epoch_losses,
+        }
+    
+    @classmethod
+    def from_model_dir(cls, model_dir: str, epoch: int = None):
+        # get params
+        params = load_json_file(os.path.join(model_dir, "params.json"))
+        
+        # create model
+        sim_model = cls(
+            no_hidden_layers = params["no_hidden"], 
+            hidden_dim = params["hidden_dim"],
+            max_length = params["max_length"],
+        )
+        
+        # load model
+        model_name = f"sim_model_{NO_HIDDEN}_{HIDDEN_DIM}"
+        if epoch is not None:
+            model_name += f"_epoch_{epoch}"
+        model_name += ".pt"
+        sim_model.model.load_model(os.path.join(model_dir, model_name))
+
+        # set model to trained
+        sim_model.trained = True
+        
+        return sim_model
 
 def do_training(model_name, modelfolder = "models/similarity", data_size = None, test_size = 100):
     modelfolder = os.path.join(modelfolder, model_name)
@@ -205,15 +238,26 @@ def do_training(model_name, modelfolder = "models/similarity", data_size = None,
     modelfile = os.path.join(modelfolder, f"sim_model_{NO_HIDDEN}_{HIDDEN_DIM}.pt")
     print(f"~ starting training on {sim_model.device}~")
     t0 = time.time()
-    loss, val_loss = sim_model.train_bert_classifier(train_loader, val_loader, NUM_EPOCHS, VAL_EPOCH, LEARNING_RATE, modelfile, verbose=True)
+    loss_dict = sim_model.train_bert_classifier(train_loader, val_loader, NUM_EPOCHS, VAL_EPOCH, LEARNING_RATE, modelfile, verbose=True)
     print(f"Finished training in {time.time()-t0} seconds")
-    
-    np.savetxt(os.path.join(modelfolder,"loss.txt"),loss)
-    np.savetxt(os.path.join(modelfolder,"val_loss.txt"),val_loss)
+
+    for key, val in loss_dict.items():
+        np.savetxt(os.path.join(modelfolder,f"{key}.txt"), val)
 
 if __name__ == "__main__":
     import datetime
-    
     model_name = f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    do_training(model_name, data_size = 200)
     
-    do_training(model_name, data_size = None)
+    
+    # test the model
+    # sim_model = BertSimilarityModel.from_model_dir("models/similarity/model_20231129_221129")
+    
+    # from image_to_poem.language_model.gpt2 import GPT2Model
+
+    # model_dir = "models/language_models/max_len-500/model/"
+    # model = GPT2Model(model_dir)
+    # prompt = "some lovely flowers in a field"
+    # poem = model.generate(prompt = prompt, num_return_sequences=1, max_length=50)[0]
+    
+    # print(sim_model.similarity(prompt, poem))
