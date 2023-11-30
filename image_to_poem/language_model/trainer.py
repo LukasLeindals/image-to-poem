@@ -67,6 +67,10 @@ class Trainer:
 		# create output dir
 		self.create_output_dir(lm_model)
   
+		# create log dir
+		self.log_dir = self.output_dir + "logs/"
+		os.makedirs(self.log_dir, exist_ok = True)
+  
 		# setup training
 		self.setup_training(data, train_params)
   
@@ -117,7 +121,7 @@ class Trainer:
 		self.train_dataloader = create_dataloader(self.train_dataset, train=True, batch_size=self.params["batch_size"], verbose=self.verbose)
 		self.val_dataloader = create_dataloader(self.val_dataset, train=False, batch_size=self.params["batch_size"], verbose=self.verbose)
 
-	def validate(self):
+	def validate(self, verbose = False):
 		t0 = time.time()
 		self.model.eval()
   
@@ -146,34 +150,42 @@ class Trainer:
 		return avg_val_loss, val_time
 
 	def train_one_epoch(self):
+		# reset variables
 		self.current_epoch += 1
-		self.current_batch_no = 0
-  
-  
+		self.current_batch_no = 0  
 		t0 = time.time()
 		total_train_loss = 0
 		self.model.train()
 
-		# Labels are shifted by 1 timestep
+		# create progress bar
 		pbar = tqdm(enumerate(self.train_dataloader), 
             	desc = f"Training epoch {self.current_epoch} out of {self.params['epochs']}", 
              	total = len(self.train_dataloader))
+
+		# go through batches
 		for step, batch in pbar:
 			self.current_batch_no += 1
+   
+			# get batch and move to device
 			b_input_ids = batch[0].to(self.device)
 			b_labels = batch[0].to(self.device)
 			b_masks = batch[1].to(self.device)
 
+			# clear gradients
 			self.model.zero_grad()
 
+			# Forward pass
 			outputs = self.model(b_input_ids,
 							labels=b_labels,
 							attention_mask=b_masks)
 			
+			# get loss
 			loss = outputs[0]
-
 			batch_loss = loss.item()
 			total_train_loss += batch_loss
+   
+			# log batch
+			self.log("batch_loss", batch_loss)
 
 			# Sampling every x steps
 			sample_every = sample_every if self.params["sample_every"] > 1 else int(self.params["sample_every"]*len(self.train_dataloader))
@@ -184,7 +196,8 @@ class Trainer:
     
 				# TODO: plot loss
 				# validate and save current avg batch loss
-				# avg_val_loss, val_time = self.validate()
+				avg_val_loss, val_time = self.validate()
+				self.log("val_loss", avg_val_loss)
 				
 
 			loss.backward()
@@ -198,11 +211,24 @@ class Trainer:
 		return avg_train_loss, training_time
 
 
+	def log(self, log_file, value):
+		path = self.log_dir + log_file + ".txt"
+  
+		# create file if it doesn't exist
+		if not os.path.exists(path):
+			with open(path, "w") as file:
+				pass
+
+		# append value to file
+		with open(path, "a") as file:
+			file.write(f"{value}\n")
+
 
 	def setup_training(self, data, parameters = {}):
 		# update parameters
 		self.params = update_param_dict(self.params, parameters)
 		json.dump(self.params, open(self.output_dir + "params.json", "w"), indent = 4)
+  
   
 		# print info
 		print("-"*50)
@@ -242,7 +268,7 @@ class Trainer:
 			avg_train_loss, training_time = self.train_one_epoch()
    
 			# validate
-			avg_val_loss, val_time = self.validate()
+			avg_val_loss, val_time = self.validate(verbose=self.verbose)
 
 			# Record all statistics from this epoch.
 			training_stats.append(
@@ -255,6 +281,8 @@ class Trainer:
 				}
 			)
 			json.dump(training_stats, open(self.output_dir + "training_stats.json", "w"), indent = 4)
+			self.log("train_loss_epoch", avg_train_loss)
+			self.log("val_loss_epoch", avg_val_loss)
    
 			# save model
 			if (self.params["save_every"] is not None) and ((epoch_i+1) % self.params["save_every"] == 0):
@@ -266,6 +294,35 @@ class Trainer:
 
 		# save model
 		self.save()
+  
+		# plot losses
+		self.plot_losses()	
+  
+	def plot_losses(self):
+		# load losses
+		load_loss = lambda log_file: np.loadtxt(self.log_dir + log_file + ".txt") if os.path.exists(self.log_dir + log_file + ".txt") else np.array([])
+		val_loss = load_loss("val_loss")
+		train_loss = load_loss("batch_loss")	
+		val_loss_epoch = load_loss("val_loss_epoch")
+		train_loss_epoch = load_loss("train_loss_epoch")
+  
+		# get some constants
+		num_epochs = len(val_loss_epoch)
+		len_train_loader = len(self.train_dataloader)
+		num_samples = int(len_train_loader/int(len_train_loader*self.params["sample_every"]))
+
+		# plot loss
+		fig, ax = plt.subplots(figsize=(10, 5))
+    
+		ax.plot(np.arange(1, num_epochs+1), val_loss_epoch, label="Validation Loss")
+		ax.plot(np.arange(1, num_epochs+1), train_loss_epoch, label="Training Loss")
+		ax.plot(np.arange(1, num_epochs*num_samples+1)/num_samples, val_loss, label="Validation Loss (per sample)")
+		ax.plot(np.arange(1, num_epochs*len_train_loader+1)/len_train_loader, train_loss, label="Training Loss (per batch)")
+
+		ax.legend()
+		ax.set(xlabel='Epoch', ylabel='Loss',title='Loss over training')
+
+		plt.savefig(self.output_dir + "losses.pdf")
 
 def save_class_settings(input_class, path, keys_to_exclude = []):
 	settings = input_class.__dict__.copy()
@@ -287,19 +344,20 @@ if __name__ == "__main__":
 	from image_to_poem.language_model.gpt2 import GPT2Model
 	
 	# setup
-	max_poems = None
+	max_poems = 200
 	params = {
 		"batch_size" : 4,
-		"sample_every": 0.1,
+		"sample_every": 0.25,
      	"dataset" : {
           	"max_texts" : max_poems,
            	"max_length" : 600,
         }, 
       	"save_every" : 1,
+       "epochs" : 2,
     }
 	
 	# init model and data
-	lm_model = GPT2Model(pretrained_model="gpt2", name = "max_len-600")
+	lm_model = GPT2Model(pretrained_model="gpt2", name = "test")
 	data = KagglePoems("data/kaggle_poems/", max_poems = max_poems)
 	
 	# create trainer
