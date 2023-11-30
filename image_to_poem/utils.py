@@ -1,7 +1,7 @@
 import datetime
 import json
 import os
-
+import shutil
 
 def flatten_list(l: list) -> list:
     """
@@ -68,3 +68,18 @@ def save_json_file(path, data):
     else:
         with open(path, 'w') as f:
             json.dump(data, f, indent=4)
+            
+def zip_model(model_dir):
+    if model_dir.endswith("/"):
+        model_dir = model_dir[:-1]
+    # zip_dir = model_dir + ".zip"
+    zip_dir = model_dir
+    shutil.make_archive(zip_dir, 'zip', model_dir)
+    
+def unzip_model(zip_dir):
+    model_dir = zip_dir.replace(".zip", "")
+    shutil.unpack_archive(zip_dir, model_dir)
+    
+if __name__ == "__main__":
+    # zip_model("models/language_models/max_len-500")
+    zip_model("models/similarity/model_20231129_221129")
