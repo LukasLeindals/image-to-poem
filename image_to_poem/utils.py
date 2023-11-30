@@ -83,5 +83,5 @@ def unzip_model(zip_dir):
 if __name__ == "__main__":
     # zip_model("models/language_models/max_len-500")
     # zip_model("models/similarity/model_20231129_221129")
-    # unzip_model("models/language_models/max_len-500.zip")
+    unzip_model("models/language_models/max_len-500.zip")
     unzip_model("models/similarity/model_20231129_221129.zip")
