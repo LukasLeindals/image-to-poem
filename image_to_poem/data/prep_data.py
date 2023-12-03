@@ -18,27 +18,32 @@ def extract_kaggle(root = DEFAULT_ROOT, filter = "topics"):
     """
     Extracts the poems from the kaggle_poems.zip file into the kaggle_poems folder
     
-    Args:
-        root (str): The root directory to extract the poems to
-        filter (str): The folder to extract from the zip file, None for all
+    Parameters
+    ----------
+    root (str): 
+        The root directory to extract the poems to
+    filter (str): 
+        The folder to extract from the zip file, None for all
     """
+    # ensure file exists
     if not os.path.exists(os.path.join(root, "kaggle_poems.zip")):
         raise FileNotFoundError("Could not find 'kaggle_poems.zip' in the data folder, please download it from https://www.kaggle.com/datasets/michaelarman/poemsdataset/")
     
+    # ensure root ends with a slash
     if not root.endswith("/"):
         root += "/"
     
+    # init unfound paths
     unfound_kaggle_poems_paths = []
     
     with zipfile.ZipFile(root+"kaggle_poems.zip", 'r') as zip_ref:
         # get all file names
         files = zip_ref.namelist()
-        print(files)
         
         # filter to only get the files in the topics folder
         if filter is not None:
             files = [file for file in files if file.startswith(f"{filter}/")]
-        print(files)
+
         # extract
         num_extracted = 0
         for file in tqdm(files, desc="Extracting Kaggle Poems"):
@@ -56,9 +61,12 @@ def download_images(max_imgs = 100, root = os.path.join(DEFAULT_ROOT, "poem_imag
     """
     Downloads images from the multim_poem.json file
     
-    Args:
-        max_imgs (int): The maximum number of images to download
-        root (str): The root directory to save the images to
+    Parameters
+    ----------
+    max_imgs (int): 
+        The maximum number of images to download
+    root (str): 
+        The root directory to save the images to
     """
     
     # make directories
@@ -105,12 +113,28 @@ def download_images(max_imgs = 100, root = os.path.join(DEFAULT_ROOT, "poem_imag
     print(f"Downloaded {num_downloaded} images")
     
 
-
-
-        
+def create_caption_data(N : int = None, image2text = None, save=True, verbose = False, backup_every = 100):
+    """
+    Creates a json file with the image urls, ids and captions.
     
-
-def create_caption_data(N : int = None, image2text = None, save=False, verbose = False, backup_every = 100):
+    Parameters
+    ----------
+    N (int, optional): 
+        The maximum number of captions to create, if None all will be used. Defaults to None.
+    image2text (pipeline, optional):
+        The pipeline to use for creating the captions, if None "nlpconnect/vit-gpt2-image-captioning" will be initialized and used. Defaults to None.
+    save (bool, optional):
+        Whether to save the data as a json file. Defaults to True.
+    verbose (bool, optional):
+        Whether to print verbose output. Defaults to False.
+    backup_every (int, optional):
+        How often to save a backup of the data. Defaults to 100.
+        
+    Returns
+    -------
+    data (list of dict):
+        A list of dicts containing the image urls, ids and captions.
+    """
     # set paths
     DATAPATH = DEFAULT_ROOT + "multim_poem.json"
     PROCESSED_DATAPATH = DEFAULT_ROOT + "caption_poem.json"
@@ -127,7 +151,7 @@ def create_caption_data(N : int = None, image2text = None, save=False, verbose =
     # create variables
     N = N if N is not None else len(all_data)    
     data = [{}]*N
-    i,j = 0,0 # i = img indexes, j = sucesful downloas
+    i,j = 0,0 # i = img indexes, j = succesful downloads
     
     # add captions
     while j < N and i < len(all_data):
@@ -164,8 +188,8 @@ def create_caption_data(N : int = None, image2text = None, save=False, verbose =
     # remove empty dicts
     data = data[:j]
     
+    # save data as a json file 
     if save:
-        # save data as a json file 
         save_json_file(PROCESSED_DATAPATH, data)
     
     return data

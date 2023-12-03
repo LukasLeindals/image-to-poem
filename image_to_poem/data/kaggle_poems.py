@@ -1,14 +1,54 @@
 import glob
-import glob
-import json
-import os
 import random
 from tqdm import tqdm
-from image_to_poem.data.utils import extract_poem_info
 from image_to_poem.utils import flatten_list
 
+import re
+
+def extract_poem_info(path):
+    """
+    Extracts the poem info from the path of a poem file
+    
+    Args:
+        path (str): The path to the poem file
+    
+    Returns:
+        (str, str, str): The category, title, and author of the poem
+    """
+    # ensure path is in unix format
+    path = path.replace("\\", "/")
+    
+    # get category (topic/forms)
+    cat = path.split('/')[-2]
+    
+    # get title and author
+    split_on_capitals = lambda x: re.sub(r"(\w)([A-Z])", r"\1 \2", x)
+    name = path.split('/')[-1].replace('.txt', '')
+    title, author = name.split('Poemby')
+    title, author = split_on_capitals(title), split_on_capitals(author)
+    
+    # remove first two words from title as these describe the category
+    title = ' '.join(title.split(' ')[2:])
+    
+    return cat, title, author
+
 class KagglePoems:
+    """
+    Class for handling the Kaggle poems dataset.
+    """
     def __init__(self, poem_path = "data/kaggle_poems/topics/", poem_ext = "txt", max_poems = None) -> None:
+        """
+        Initializes the KagglePoems class.
+        
+        Parameters
+        ----------
+        poem_path (str, optional):
+            Path to the poems. Defaults to "data/kaggle_poems/topics/", meaning the topics subset will not be included.
+        poem_ext (str, optional):
+            File extension of the poems. Defaults to "txt".
+        max_poems (int, optional):
+            Maximum number of poems to include. Defaults to None, meaning all poems will be included.
+        """
         self.poem_path = poem_path
         self.poem_ext = poem_ext
         self.max_poems = max_poems
@@ -27,6 +67,14 @@ class KagglePoems:
         self.words = [poem.split() for poem in self.poems]
         
     def get_poem_paths(self, poem_path):
+        """
+        Get file paths for all poems.
+        
+        Parameters
+        ----------
+        poem_path (str):
+            Path to the poems folder.
+        """
         # add / to path
         if not poem_path.endswith("/"):
             poem_path += "/"
@@ -44,6 +92,19 @@ class KagglePoems:
         self.paths = [path.replace("\\", "/") for path in self.paths]
     
     def read_poem(self, path):
+        """
+        Reads a poem from a file.
+        
+        Parameters
+        ----------
+        path (str):
+            Path to the poem file.
+            
+        Returns
+        -------
+        poem (str):
+            The poem. If poem could not be read, an empty string is returned.
+        """
         try:
             with open(path, 'r', encoding="utf8") as f:
                 return f.read()
@@ -77,6 +138,17 @@ class KagglePoems:
         }
 
 if __name__ == "__main__":
+    # test extract poem info
+    import glob, random
+    paths = glob.glob("data/"+"kaggle_poems/topics/*/*.txt", recursive=True)
+    example = random.choice(paths)
+    print("Input path:", example)
+    cat, title, author = extract_poem_info(example)
+    print("Category:", cat)
+    print("Title:", title)
+    print("Author:", author)
+    
+    # test KagglePoems class
     poems = KagglePoems()
-    # poems.get_example()
-    # print(poems.stats)
+    poems.get_example()
+    print(poems.stats)
