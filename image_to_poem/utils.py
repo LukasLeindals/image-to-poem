@@ -6,9 +6,15 @@ import shutil
 def flatten_list(l: list) -> list:
     """
     Flatten a list of lists into a list.
-    Args:
-        l: a list of lists
-    Returns:
+    
+    Parameters
+    ----------
+    l: 
+        a list of lists
+    
+    Returns
+    -------
+    out:
         a flattened list
     """
     out = []
@@ -27,7 +33,20 @@ def flatten_list(l: list) -> list:
     return out
 
 def format_time(time_in_seconds: float) -> str:
-  return str(datetime.timedelta(seconds=int(round(time_in_seconds))))
+    """
+    Format a time in seconds to a string.
+    
+    Parameters
+    ----------
+    time_in_seconds: 
+        time in seconds
+    
+    Returns
+    -------
+    str:
+        formatted time
+    """
+    return str(datetime.timedelta(seconds=int(round(time_in_seconds))))
 
 def update_param_dict(params, param_updates):
     """
@@ -53,11 +72,34 @@ def update_param_dict(params, param_updates):
     return params
 
 def load_json_file(path):
+    """
+    Load a json file.
+    
+    Parameters
+    ----------
+    path (str):
+        Path to the json file.
+        
+    Returns
+    -------
+    json_context (dict):
+        The json context.
+    """
     with open(path) as f:
         json_context = json.load(f)
     return json_context
 
 def save_json_file(path, data):
+    """
+    Save a json file.
+    
+    Parameters
+    ----------
+    path (str):
+        Path to the json file.
+    data (dict):
+        The data to save.
+    """
     if os.path.exists(path):
         print(f"File {path} already exists")
         path, ext = os.path.splitext(path)
@@ -70,13 +112,29 @@ def save_json_file(path, data):
             json.dump(data, f, indent=4)
             
 def zip_model(model_dir):
+    """
+    Zip a model directory.
+    
+    Parameters
+    ----------
+    model_dir (str):
+        Path to the model directory.
+    """
     if model_dir.endswith("/"):
         model_dir = model_dir[:-1]
-    # zip_dir = model_dir + ".zip"
+    
     zip_dir = model_dir
     shutil.make_archive(zip_dir, 'zip', model_dir)
     
 def unzip_model(zip_dir):
+    """
+    Unzip a model directory.
+    
+    Parameters
+    ----------
+    zip_dir (str):
+        Path to the zip file.
+    """
     model_dir = zip_dir.replace(".zip", "")
     shutil.unpack_archive(zip_dir, model_dir)
     

@@ -4,9 +4,25 @@ from image_to_poem.language_model.gpt2 import GPT2Model
 from image_to_poem.similarity.similarity_scoring import BertSimilarityModel
 
 class PoemGenerator:
+    """
+    A class for generating poems from images.
+    """
     def __init__(self, lm_model: str, sim_model: str, n_candidates: int=10):
+        """
+        Initializes the PoemGenerator class.
+        
+        Parameters
+        ----------
+        lm_model (str): 
+            Path to the GPT-2 language model. Can be a local path or a HuggingFace model name.
+        sim_model (str):
+            Path to the BERT similarity model.
+        n_candidates (int, optional):
+            Number of poem candidates to generate. Defaults to 10.
+        """
         self.N = n_candidates   # #poem candidates to generate 
         
+        # init image-to-text pipeline
         print("Initializing image-to-text model...")
         self.image_to_text = pipeline("image-to-text", model="nlpconnect/vit-gpt2-image-captioning")
         
@@ -19,6 +35,21 @@ class PoemGenerator:
         self.sim_model = BertSimilarityModel.from_model_dir(sim_model)
 
     def image_to_poem(self, image_paths, **kwargs):
+        """
+        Creates poems from images.
+        
+        Parameters
+        ----------
+        image_paths (list of str):
+            List of paths to the images.
+        **kwargs:
+            kwargs to pass to the generate function of the GPT-2 language model.
+            
+        Returns
+        -------
+        poems (list of dict):
+            List of poems. Each poem is a dict with the keys "image_path", "image_desc" and "generated_poem".
+        """
         # make sure image_paths is a list
         if isinstance(image_paths, str):
             image_paths = [image_paths]
@@ -39,18 +70,67 @@ class PoemGenerator:
         return poems
     
     def generate_poem(self, description: str, **kwargs):
+        """
+        Generates a poem from a description.
+        
+        Parameters
+        ----------
+        description (str):
+            Description to generate poem from.
+        **kwargs:
+            kwargs to pass to the generate function of the GPT-2 language model.
+            
+        Returns
+        -------
+        poem (str):
+            The generated poem.
+        """
         # generate N poems 
         poems = self.get_candidates(description, **kwargs)
+        
         # select "best match"
         poem = self.select_poem(poems, description)
+        
         # return final poem 
         return poem 
     
     def get_candidates(self, description: str, **kwargs):
+        """
+        Generates a list of poem candidates from a description.
+        
+        Parameters
+        ----------
+        description (str):
+            Description to generate poem from.
+        **kwargs:
+            kwargs to pass to the generate function of the GPT-2 language model.
+            
+        Returns
+        -------
+        poems (list of str):
+            List of poem candidates.
+        """
         # use LM to generate N poems from the description 
-        return self.lm_model.generate(prompt = description, num_return_sequences=self.N, **kwargs)
+        poems =  self.lm_model.generate(prompt = description, num_return_sequences=self.N, **kwargs)
+        
+        return poems
     
     def select_poem(self, candidates: list, description: str):
+        """
+        Use the BERT similarity model to select the best poem from a list of candidates.
+        
+        Parameters
+        ----------
+        candidates (list of str):
+            List of poem candidates.
+        description (str):
+            Description used to generate the poem candidates.
+            
+        Returns
+        -------
+        poem (str):
+            The best poem.
+        """
         # collect similarity score for each poem candidate 
         sim_scores = [0]*len(candidates)
         for i,poem in enumerate(candidates):
