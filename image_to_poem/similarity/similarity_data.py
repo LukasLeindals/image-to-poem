@@ -2,9 +2,18 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split, RandomSampler, SequentialSampler
 
-# TODO: Issue! Update the Dataset to work with batch size > 1 
 class CaptionPoemDataset(Dataset):
-    def __init__(self, datadict : dict, encoder_fun):
+    def __init__(self, datadict : list, encoder_fun):
+        """
+        Initializes the Caption-Poem Dataset.
+
+        Parameters
+        ----------
+        datadict (list[dict]): 
+            The raw caption-poem data. 
+        encoder_fun (function): 
+            An encoder function to encode a caption and poem. 
+        """
         self.data = datadict
         self.encoder = encoder_fun 
                 
@@ -33,7 +42,21 @@ class CaptionPoemDataset(Dataset):
         y = 1 if idx == match_idx else 0 
         return X, y
 
-def get_dataloaders(datadict, encoder_fun, batch_size, split):
+def get_dataloaders(datadict : list, encoder_fun, batch_size : int, split : float):
+    """
+    Obtain a training and validation dataloader for training the BERT similarity model 
+
+    Parameters
+    ----------
+    datadict (list[dict]): 
+        The raw caption-poem data. 
+    encoder_fun (function): 
+        An encoder function to encode a caption and poem. 
+    batch_size (int):
+        The batch size of for both dataloaders.
+    split (float):
+        How to split the data: split% of the data to use for training and (1-split)% for validation. 
+    """
     # define dataset class 
     dataset = CaptionPoemDataset(datadict, encoder_fun)
     

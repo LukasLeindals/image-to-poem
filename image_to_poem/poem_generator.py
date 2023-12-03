@@ -1,5 +1,4 @@
 from transformers import pipeline
-from sentence_transformers import SentenceTransformer, util as st_utils
 import numpy as np
 from image_to_poem.language_model.gpt2 import GPT2Model
 from image_to_poem.similarity.similarity_scoring import BertSimilarityModel

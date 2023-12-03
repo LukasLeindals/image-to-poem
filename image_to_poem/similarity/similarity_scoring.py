@@ -27,10 +27,20 @@ VAL_EPOCH = 1
 LEARNING_RATE = 0.001
 SAVE_EVERY = 1 # save model every x epochs
 
-
-
 class BertSimilarityModel:
-    def __init__(self, no_hidden_layers: int=1, hidden_dim: int = 100, max_length: int = 250):       
+    def __init__(self, no_hidden_layers: int=1, hidden_dim: int = 100, max_length: int = 250):   
+        """
+        Initializes the BERT Similarity Model.
+
+        Parameters
+        ----------
+        no_hidden_layers (int): 
+            Number of hidden layers in the classifier 
+        hidden_dim (int): 
+            Number of nodes in the hidden layers of the classifier.
+        max_length (int): 
+            Maximum length of the encoded input to BERT. 
+        """    
         # models 
         self.bert = BertModel.from_pretrained("bert-base-uncased")
         self.model = Bert_classifier(self.bert.config.hidden_size, no_hidden_layers, hidden_dim)
@@ -54,9 +64,30 @@ class BertSimilarityModel:
         self.model.to(self.device)
     
     def encode_input(self, caption: str, poem: str):
+        """
+        Encode a caption and poem for input to BERT as such: 
+        [CLS] [CAP TOKEN 1] ... [CAP TOKEN N] [SEP] [POEM TOKEN 1] ... [POEM TOKEN M] [SEP] ([PAD] ...)
+
+        Parameters
+        ----------
+        caption (str): 
+            The caption. 
+        poem (str): 
+            The poem. 
+        """  
         return self.tokenizer.encode_plus(caption, poem, max_length=self.max_len, truncation=True, padding="max_length", return_tensors="pt")
     
     def similarity(self, caption: str, poem: str) -> float:
+        """
+        Calculate the similarity between a given caption and poem. 
+
+        Parameters
+        ----------
+        caption (str): 
+            The caption. 
+        poem (str): 
+            The poem. 
+        """  
         if not self.trained:
             print("The BERT Classifier has not been trained yet. Similarity might not be good.")
         
@@ -77,7 +108,28 @@ class BertSimilarityModel:
     
     def train_bert_classifier(self, train_loader: DataLoader, val_loader: DataLoader, num_epochs: int = NUM_EPOCHS, 
                               val_epoch: int = VAL_EPOCH, learning_rate: float = LEARNING_RATE, save_path: str=None, verbose: bool=True):
+        """
+        A function to train the classifier. 
+
+        Parameters
+        ----------
+        train_loader (DataLoader) : 
+            Dataloader for the training data. 
+        val_loader (DataLoader) : 
+            Dataloader for the validation data. 
+        num_epochs (int) :
+            Number of epochs to train. 
+        val_epoch (int) :
+            How often to run a validation epoch. 
+        learning_rate (float) : 
+            Learning rate of the training for the optimizer. 
+        save_path (str) :
+            The path to where to save all the data from training. 
+        verbose (bool) : 
+            whether or not to print/save a training figure at the end of training. 
+        """  
         save_folder = os.path.dirname(save_path) if save_path is not None else None
+        # for training 
         optimizer = Adam(self.model.parameters(), lr=learning_rate) 
         criterion = nn.BCELoss()
         
@@ -176,7 +228,6 @@ class BertSimilarityModel:
         if save_path is not None:
             self.model.save_model(save_path)
             
-        
         # send to cpu and convert to numpy array
         losses = [loss.cpu().detach().numpy() for loss in losses]
         val_losses = [val_loss.cpu().detach().numpy() for val_loss in val_losses]
@@ -207,6 +258,16 @@ class BertSimilarityModel:
     
     @classmethod
     def from_model_dir(cls, model_dir: str, epoch: int = None):
+        """
+        A function to load a pre-trained saved model 
+
+        Parameters
+        ----------
+        model_dir (str) : 
+            Directory to a pretrained model 
+        epoch (int) :
+            Which epoch to load. If None, the last trained epoch is loaded. 
+        """  
         # get params
         params = load_json_file(os.path.join(model_dir, "params.json"))
         
@@ -230,6 +291,20 @@ class BertSimilarityModel:
         return sim_model
 
 def do_training(model_name, modelfolder = "models/similarity", data_size = None, test_size = 100):
+    """
+    A function to set up and start a training of the similarity model. 
+
+    Parameters
+    ----------
+    model_name (str) : 
+        Model name. 
+    modelfolder (str) :
+        Folder where to save the training things. 
+    data_size (int) : 
+        If not none, this is the amount of data used for training and validation. 
+    test_size (int) : 
+        How much data to set aside for testing. 
+    """  
     modelfolder = os.path.join(modelfolder, model_name)
     os.makedirs(modelfolder, exist_ok=True)
     
