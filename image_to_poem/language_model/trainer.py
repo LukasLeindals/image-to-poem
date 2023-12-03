@@ -1,8 +1,5 @@
-import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
-
 import random
 import json
 import time
@@ -10,32 +7,41 @@ import datetime
 import os
 from tqdm import tqdm
 
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config, get_linear_schedule_with_warmup #,AdamW
+from transformers import get_linear_schedule_with_warmup
 
 import torch
-torch.manual_seed(64)
-from torch.utils.data import Dataset, random_split, DataLoader, RandomSampler, SequentialSampler
 from torch.optim import AdamW
-
 
 from image_to_poem.utils import format_time, update_param_dict
 from image_to_poem.language_model.lm_dataset import get_datasets, create_dataloader
 from image_to_poem.data.kaggle_poems import KagglePoems
-from image_to_poem.utils import load_json_file, save_json_file
+from image_to_poem.utils import save_json_file
 
 
 def set_seed(seed_val = 42):
+	"""
+	Sets the seed for random number generation for reproducibility.
+	
+	Parameters
+	----------
+	seed_val (int, optional):
+		Seed for random number generation. Defaults to 42.
+	"""
 	random.seed(seed_val)
 	np.random.seed(seed_val)
 	torch.manual_seed(seed_val)
 	torch.cuda.manual_seed_all(seed_val)
 
 class Trainer:
+	"""
+	A class for training language models.
+	"""
+    # set default parameters
 	params = {
 		"epochs" : 4,
 		"sample_every" : 0.5,
 		"save_every" : None,
-		"batch_size" : 8, # test this
+		"batch_size" : 8, 
 		"optimizer" : {
 			"lr" : 5e-4,
 			"eps" : 1e-8,
@@ -51,12 +57,28 @@ class Trainer:
 		},
 		"dataset" : {
 			"train_frac": 0.9, 
-   			"max_length": 100, #test this - from data dist 
-      		"max_texts": None,
+   			"max_length": 500,
+	  		"max_texts": None,
 		},
 	}
 	
 	def __init__(self, lm_model, data, train_params = {}, verbose = False):
+		"""
+		Initializes the trainer.
+  
+		Parameters
+		----------
+		lm_model (GPT2Model):
+			An instance of the image_to_poem.language_model.gpt2.GPT2Model class. The name of this model will be used to create the output directory.
+		data (list of str):
+			List of texts to use for training.
+		train_params (dict, optional):
+			Dictionary of training parameters to update. Defaults to {}. 
+			If you e.g. want to try a different learning rate, you can pass {"optimizer" : {"lr" : 1e-4}}.
+			For dict of default parameters see the Trainer.params attribute.
+		verbose (bool, optional):
+			Whether to print verbose output. Defaults to False.   
+  		"""
 		self.verbose = verbose 
   
 		# save lm model and extract necesary components
@@ -74,27 +96,51 @@ class Trainer:
 		# setup training
 		self.setup_training(data, train_params)
   
-		# some variables
+		# some tracking variables
 		self.current_epoch = 0
 		
   
 	def create_output_dir(self, lm):
+		"""
+		Creates the output directory for the model.
+  
+		Parameters
+		----------
+		lm (GPT2Model):
+			An instance of the image_to_poem.language_model.gpt2.GPT2Model class. The name of this model will be used to create the output directory.
+  		"""
+		# define output dir
 		self.output_dir = "models/language_models/" + lm.name + "/"
+  
+		# append date if output dir already exists
 		if os.path.exists(self.output_dir):
 			print(f"WARNING: Output directory '{self.output_dir}' already exists. Appending the date to the file name...")
 			self.output_dir = self.output_dir.strip("/")
 			self.output_dir += "_" + datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/"
+   
+		# create output dir
 		os.makedirs(self.output_dir, exist_ok = True)
 
   
 	def save(self):
+		"""
+		Saves the model and tokenizer to the output directory.
+  		"""
+		# create model dir
 		model_dir = self.output_dir + "model/"
 		print(f"Saving model to '{model_dir}' ...")
+  
+		# save model
 		model_to_save = self.model.module if hasattr(self.model, 'module') else self.model
 		model_to_save.save_pretrained(model_dir)
+  
+		# save tokenizer
 		self.tokenizer.save_pretrained(model_dir)
 		
 	def sample(self):
+		"""
+		Creates samples from the model and saves them to the output directory.
+		"""
 		# create folder for samples
 		sample_dir = self.output_dir + "samples/"
 		os.makedirs(sample_dir, exist_ok = True)
@@ -104,10 +150,10 @@ class Trainer:
 
 		# create samples
 		sample_outputs = self.model.generate(bos_token_id=random.randint(1,30000), 
-                                       pad_token_id=self.tokenizer.pad_token_id,
-                                       **self.params["sample"])
+									   pad_token_id=self.tokenizer.pad_token_id,
+									   **self.params["sample"])
   
-		# decode and save sample
+		# decode and save samples
 		for i, sample_output in enumerate(sample_outputs):
 			sample_ = self.tokenizer.decode(sample_output, skip_special_tokens=True)
 			with open(sample_dir + f"epoch_{self.current_epoch}_batch_{self.current_batch_no}_{i}.txt", "w", encoding="utf8") as file:
@@ -117,50 +163,77 @@ class Trainer:
 		self.model.train()
   
 	def load_data(self, data):
+		"""
+		Loads the data and creates the training and validation datasets.
+  
+		Parameters
+		----------
+		data (list of str):
+			List of texts to use for training.
+		"""
 		self.train_dataset, self.val_dataset = get_datasets(data, self.tokenizer, **self.params["dataset"], verbose=self.verbose)
 		self.train_dataloader = create_dataloader(self.train_dataset, train=True, batch_size=self.params["batch_size"], verbose=self.verbose)
 		self.val_dataloader = create_dataloader(self.val_dataset, train=False, batch_size=self.params["batch_size"], verbose=self.verbose)
 
 	def validate(self, verbose = False):
-		t0 = time.time()
+		"""
+		Validates the model on the validation dataset.
+
+		Parameters
+		----------
+		verbose (bool, optional):
+			Whether to print verbose output. Defaults to False.
+		"""
+		# turn on eval mode
 		self.model.eval()
-  
+
+		# init variables
+		t0 = time.time()
 		total_eval_loss = 0
 
+		# go through batches
 		for batch in self.val_dataloader:
+			# get batch and move to device
 			b_input_ids = batch[0].to(self.device)
 			b_labels = batch[0].to(self.device)
 			b_masks = batch[1].to(self.device)
 				
-			with torch.no_grad():        
-
+			with torch.no_grad():   
+				# Forward pass
 				outputs  = self.model(b_input_ids,  
 								attention_mask = b_masks,
 								labels=b_labels)
-					
+				
+				# get loss
 				loss = outputs[0]  
-					
 				batch_loss = loss.item()
 				total_eval_loss += batch_loss   
 
+		# calculate stats
 		avg_val_loss = total_eval_loss / len(self.val_dataloader)  
 		val_time = format_time(time.time() - t0)    
-		print(f'Validation loss: {avg_val_loss}. Validation Time: {val_time}')
+		if verbose:
+			print(f'Validation loss: {avg_val_loss}. Validation Time: {val_time}')
   
 		return avg_val_loss, val_time
 
 	def train_one_epoch(self):
+		"""
+		Trains the model for one epoch.
+  		"""
 		# reset variables
 		self.current_epoch += 1
 		self.current_batch_no = 0  
 		t0 = time.time()
 		total_train_loss = 0
+  
+		# turn on train mode
 		self.model.train()
 
 		# create progress bar
 		pbar = tqdm(enumerate(self.train_dataloader), 
-            	desc = f"Training epoch {self.current_epoch} out of {self.params['epochs']}", 
-             	total = len(self.train_dataloader))
+				desc = f"Training epoch {self.current_epoch} out of {self.params['epochs']}", 
+			 	total = len(self.train_dataloader))
 
 		# go through batches
 		for step, batch in pbar:
@@ -190,20 +263,19 @@ class Trainer:
 			# Sampling every x steps
 			sample_every = sample_every if self.params["sample_every"] > 1 else int(self.params["sample_every"]*len(self.train_dataloader))
 			if ((step != 0) and (sample_every) and  ((step +1) % sample_every == 0)):
-				# elapsed = format_time(time.time()-t0)
-				# print(f'Batch {step} of {len(self.train_dataloader)}. Loss: {batch_loss}. Time: {elapsed}')
+				# sample
 				self.sample()
-    
-				# TODO: plot loss
+	
 				# validate and save current avg batch loss
 				avg_val_loss, val_time = self.validate()
 				self.log("val_loss", avg_val_loss)
 				
-
+			# Backward pass
 			loss.backward()
 			self.optimizer.step()
 			self.scheduler.step()
 
+		# calculate stats
 		avg_train_loss = total_train_loss / len(self.train_dataloader)
 		training_time = format_time(time.time()-t0)
 		print(f'Average Training Loss: {avg_train_loss}. Epoch time: {training_time}')
@@ -212,6 +284,17 @@ class Trainer:
 
 
 	def log(self, log_file, value):
+		"""
+		Logs a value to a file.
+
+		Parameters
+		----------
+		log_file (str):
+			Name of the log file.
+		value (float):
+			Value to log.
+		"""
+		# create path
 		path = self.log_dir + log_file + ".txt"
   
 		# create file if it doesn't exist
@@ -225,6 +308,18 @@ class Trainer:
 
 
 	def setup_training(self, data, parameters = {}):
+		"""
+		Sets up the training.
+
+		Parameters
+		----------
+		data (list of str):
+			List of texts to use for training.
+		parameters (dict, optional):
+			Dictionary of training parameters to update. Defaults to {}. 
+			If you e.g. want to try a different learning rate, you can pass {"optimizer" : {"lr" : 1e-4}}.
+			For dict of default parameters see the Trainer.params attribute.
+		"""
 		# update parameters
 		self.params = update_param_dict(self.params, parameters)
 		json.dump(self.params, open(self.output_dir + "params.json", "w"), indent = 4)
@@ -256,12 +351,19 @@ class Trainer:
 		
 
 	def train(self):
+		"""
+		Trains the model.
+		"""
+		# init variables
 		total_t0 = time.time()
-
 		training_stats = []
 
+		# go through epochs
 		for epoch_i in range(self.params["epochs"]):
+			# empty cache
 			torch.cuda.empty_cache()
+   
+			# print info
 			print(f'Beginning epoch {epoch_i+1} of {self.params["epochs"]}')
 		
 			# train one epoch
@@ -287,9 +389,9 @@ class Trainer:
 			# save model
 			if (self.params["save_every"] is not None) and ((epoch_i+1) % self.params["save_every"] == 0):
 				self.save()
-    
+	
 			print("------------------------------")
-    
+	
 		print(f'Total training took {format_time(time.time()-total_t0)}')
 
 		# save model
@@ -299,6 +401,9 @@ class Trainer:
 		self.plot_losses()	
   
 	def plot_losses(self):
+		"""
+		Plots the losses logged during training.
+		"""
 		# load losses
 		load_loss = lambda log_file: np.loadtxt(self.log_dir + log_file + ".txt") if os.path.exists(self.log_dir + log_file + ".txt") else np.array([])
 		val_loss = load_loss("val_loss")
@@ -313,7 +418,7 @@ class Trainer:
 
 		# plot loss
 		fig, ax = plt.subplots(figsize=(10, 5))
-    
+	
 		ax.plot(np.arange(1, num_epochs+1), val_loss_epoch, label="Validation Loss")
 		ax.plot(np.arange(1, num_epochs+1), train_loss_epoch, label="Training Loss")
 		ax.plot(np.arange(1, num_epochs*num_samples+1)/num_samples, val_loss, label="Validation Loss (per sample)")
@@ -325,6 +430,19 @@ class Trainer:
 		plt.savefig(self.output_dir + "losses.pdf")
 
 def save_class_settings(input_class, path, keys_to_exclude = []):
+	"""
+    Saves the settings of a class to a json file.
+    
+    Parameters
+	----------
+	input_class (object):
+		An instance of a class.
+	path (str):
+		Path to save the json file to.
+	keys_to_exclude (list of str, optional):
+		List of keys to exclude from the settings. Defaults to [].
+    """
+    # get settings from the __dict__ attribute
 	settings = input_class.__dict__.copy()
 	
 	# remove keys to exclude
@@ -335,7 +453,8 @@ def save_class_settings(input_class, path, keys_to_exclude = []):
 	for key in settings:
 		if not str(settings[key]).isnumeric():
 			settings[key] = str(settings[key])
-  
+	
+	# save to json file
 	save_json_file(path, settings)
 
 
@@ -344,17 +463,17 @@ if __name__ == "__main__":
 	from image_to_poem.language_model.gpt2 import GPT2Model
 	
 	# setup
-	max_poems = 200
+	max_poems = 100
 	params = {
 		"batch_size" : 4,
 		"sample_every": 0.25,
-     	"dataset" : {
-          	"max_texts" : max_poems,
-           	"max_length" : 600,
-        }, 
-      	"save_every" : 1,
-       "epochs" : 2,
-    }
+	 	"dataset" : {
+		  	"max_texts" : max_poems,
+		   	"max_length" : 100,
+		}, 
+	  	"save_every" : 1,
+	   "epochs" : 2,
+	}
 	
 	# init model and data
 	lm_model = GPT2Model(pretrained_model="gpt2", name = "test")

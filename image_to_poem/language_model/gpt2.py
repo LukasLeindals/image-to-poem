@@ -1,14 +1,10 @@
-from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config, AdamW, get_linear_schedule_with_warmup
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config
 import torch
 import numpy as np
 import random
-import time
-import tqdm
 import datetime
 import os
 
-from image_to_poem.language_model.lm_dataset import get_datasets, create_dataloader
-from image_to_poem.utils import format_time
 
 class GPT2Model:
     def __init__(self, pretrained_model = "gpt2", name = None, device: torch.device = None, verbose = False, seed = 42):
@@ -73,7 +69,7 @@ class GPT2Model:
             self.pretrained_model, 
             config=config)
         
-        
+        # set embedding length of model to match the tokenizer
         model.resize_token_embeddings(len(self.tokenizer))
 
         # Running the model on GPU
@@ -130,4 +126,5 @@ if __name__ == "__main__":
     # create model
     gpt2_model = GPT2Model(verbose = True, pretrained_model = pretrained_model)   
     
+    # use test prompt and generate poem
     print(gpt2_model.generate("what is natural language processing?"))
