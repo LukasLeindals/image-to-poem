@@ -39,6 +39,7 @@ class GPT2Model:
                                           pad_token='<|pad|>',)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
+            self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
         
         # Initialize model
         self.load_model()

@@ -110,8 +110,17 @@ class PoemGenerator:
         poems (list of str):
             List of poem candidates.
         """
-        # use LM to generate N poems from the description 
-        poems =  self.lm_model.generate(prompt = description, num_return_sequences=self.N, **kwargs)
+        poems = [None]*self.N
+        
+        i = 0
+        while i < self.N:
+            # generate poem 
+            poem = self.lm_model.generate(prompt = description, num_return_sequences=1, **kwargs)[0].strip()
+            
+            # check if poem is unique 
+            if poem != "":
+                poems[i] = poem 
+                i += 1
         
         return poems
     
