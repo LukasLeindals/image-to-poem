@@ -45,6 +45,8 @@ Then, train the language model  by running the `Trainer.train()` method found in
 
 ### Training a similarity model
 
+To train the similarity scoring model the function one has to run the file `similarity_scoring.py`. At the top of the script the various hyperparameters of the model and training can be changes. 
+
 ## Demo 
 
 After acquiring the trained language and similarity models, the `image-to-poem` package can be used to generate poems from images. The functionality of the package is demonstrated in the `notebooks/demo.ipynb` notebook.
