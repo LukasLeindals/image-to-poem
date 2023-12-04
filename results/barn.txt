@@ -1,0 +1,84 @@
+----------Caption----------
+a barn with a wooden roof and a wooden door 
+
+----------Poem----------
+in the yard
+with wood panelling   and a wooden door which runs all day long
+from house to house is the barn the house
+with the chimney is a house of  children
+and the little boys play  together
+with the little girls who live nearby
+with a doll they call  Dolly
+to visit their little ones to play
+dinner time  is the only one
+who cares about it
+and
+
+----------Candidate poems----------
+Poem 1)
+in the yard
+with wood panelling   and a wooden door which runs all day long
+from house to house is the barn the house
+with the chimney is a house of  children
+and the little boys play  together
+with the little girls who live nearby
+with a doll they call  Dolly
+to visit their little ones to play
+dinner time  is the only one
+who cares about it
+and
+
+Similarity score 1: 0.8904135227203369
+
+Poem 2)
+its a three doors down
+and a two blocks down to the pond,
+it has an edge on its upper deck
+a longish black beard
+and a long, tall, long hair
+and a long, straight nose and the hair
+inside,
+the floor is covered with a layer of damp grass
+on the edge of the pond.
+The pool is lined with green grass,
+the water is clear in the morning
+
+Similarity score 2: 0.6741343140602112
+
+Poem 3)
+and a  wooden  door.
+The place that we call heaven is a place we once knew;
+but the windows are aching and the rain has come
+to get us to this place again.
+A doorway to this place was once closed,
+but I see things differently;
+everything is in the same state;
+we have our ups and downs and our downs.
+And here the roof has grown more big,
+
+Similarity score 3: 0.8454211950302124
+
+Poem 4)
+rawn well.
+Two young and two old men sitting in the same barn
+Doing their jobs and talk of other jobs and places.
+The barn is a house of many jobs, so many good ones,
+The barn is a big place for employment
+It is an office or home for those who want to enjoy it
+The barn is a home for those who have lived at the farm
+The barn has good history and good
+
+Similarity score 4: 0.8837331533432007
+
+Poem 5)
+The moon is a rose, and all that
+is bare inside is a little box of chocolate
+and the little box is a small box of melted chocolate.
+I watch people pass it by, all the way
+and some, I guess, some, some not.
+The box is a little thing that you see here
+and you can't really see it.
+It comes up like a big ball of gold in the sky
+
+Similarity score 5: 0.5080258846282959
+

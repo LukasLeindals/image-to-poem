@@ -1,0 +1,85 @@
+----------Caption----------
+a red door leading to a red brick building 
+
+----------Poem----------
+I walk in  walk the dog
+she runs down that red brick building down the street
+I smell her red car smell and she runs over to that red brick building
+I think to myself that I'll know where I live
+I am running down that red brick building down the street
+the city is my red brick building down the street
+I am a white brick city
+I walk down that red brick building down the street
+the city
+
+----------Candidate poems----------
+Poem 1)
+in a field of rice.
+The wind blows. I hear a bird calling
+From under the greenwood, and some say it's his only fear,
+In the far off corner I see
+A butterfly.
+It calls, calling, calling from the east.
+My childhood days were filled with love, the smell of the butterfly
+When I was small.
+I didn't have time to write.
+When people called, they
+
+Similarity score 1: 0.45612114667892456
+
+Poem 2)
+as red as it is all the black,
+a door that lights all the walls, even those  walls that I have bought
+for the one thing, for which i've nothing to give,
+red bricks, with the same little rhyme
+one night, i saw them, like a tiny picture of a girl.
+they looked so very green,
+the black was too red.
+and my green brick had cracked the green brick
+
+Similarity score 2: 0.8068655729293823
+
+Poem 3)
+is locked
+and there is only one left to see
+there are a few who wish I did not
+but who knows.
+Now, I wonder.
+You are in our world now
+we don't think you are
+your red brick
+but you were my first red brick
+and now you are my red brick
+if we are to make a start
+we are to make a start
+so go and join us now
+but
+
+Similarity score 3: 0.8570944666862488
+
+Poem 4)
+in the city of Chicago
+Walking down the road, a woman in her 40s
+smiling, "Hello, have a good time."
+She says, "Hello, have a good time,
+Walking across the street to the city
+to find the place with the beautiful sign on the wall.
+Here we are at the red brick building.
+First, a red brick,
+Second, our name is the red brick
+
+Similarity score 4: 0.8468829989433289
+
+Poem 5)
+I walk in  walk the dog
+she runs down that red brick building down the street
+I smell her red car smell and she runs over to that red brick building
+I think to myself that I'll know where I live
+I am running down that red brick building down the street
+the city is my red brick building down the street
+I am a white brick city
+I walk down that red brick building down the street
+the city
+
+Similarity score 5: 0.8726089596748352
+

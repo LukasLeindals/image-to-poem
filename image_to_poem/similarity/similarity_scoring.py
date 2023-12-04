@@ -332,5 +332,5 @@ def do_training(model_name, modelfolder = "models/similarity", data_size = None,
 if __name__ == "__main__":
     import datetime
     model_name = f"model_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    do_training(model_name, data_size = 200)
+    do_training(model_name, data_size = None)
     
