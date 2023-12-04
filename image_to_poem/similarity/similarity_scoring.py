@@ -87,6 +87,10 @@ class BertSimilarityModel:
             The caption. 
         poem (str): 
             The poem. 
+            
+        Returns
+        ----------
+        similarity score (float)
         """  
         if not self.trained:
             print("The BERT Classifier has not been trained yet. Similarity might not be good.")

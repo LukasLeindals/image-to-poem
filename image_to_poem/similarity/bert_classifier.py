@@ -25,10 +25,6 @@ class Bert_classifier(nn.Module):
         self.to(self.device)
     
     def forward(self, x):
-        # send through bert 
-        # out = self.bert(**bert_input)
-        # _, x = out[0], out[1]
-        
         # send through FFNN
         x = self.hidden_layers(x)
         x = self.final_layer(x)
